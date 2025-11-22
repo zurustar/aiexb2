@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/requirements.md
+Depended On By: docs/ieee830.md, docs/usecase_diagram.puml
+-->
 # システムユースケース定義書 (System Use Case Specification)
 
 **対象システム:** 企業向け統合スケジュール管理システム  

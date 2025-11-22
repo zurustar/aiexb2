@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/basic_design.md
+Depended On By: None
+-->
 # AIアシスタント機能詳細設計書
 
 **対象機能:** FN-04 (AI日程調整), FN-09 (会議準備支援)

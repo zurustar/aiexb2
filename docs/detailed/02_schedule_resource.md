@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/basic_design.md
+Depended On By: None
+-->
 # スケジュール・リソース管理詳細設計書
 
 **対象機能:** FN-02 (予定管理), FN-03 (リソース予約), FN-07 (チェックイン), FN-11 (キャンセルポリシー)

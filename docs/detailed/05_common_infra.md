@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/basic_design.md
+Depended On By: None
+-->
 # 共通機能・インフラ詳細設計書
 
 **対象機能:** FN-08 (通知), 共通エラーハンドリング, ログ設計

@@ -1,7 +1,11 @@
 # AI駆動型エンタープライズ・スケジュール管理システム 開発仕様書
 
 **プロジェクト規模:** ユーザー数 10,000人未満  
-**開発手法:** AI-Driven Development (AIDD) / フルスペック・ワンショットリリース  
+**開発手法:**<!--
+Depends On: None
+Depended On By: docs/usecases.md, docs/ieee830.md
+-->
+# 要件定義書 (Requirements Document) (AIDD) / フルスペック・ワンショットリリース  
 **文書バージョン:** 1.0 (Architecture & Strategy)
 
 ## 1. システムアーキテクチャ戦略

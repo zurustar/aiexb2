@@ -1,4 +1,8 @@
-# 認証・認可詳細設計書
+<!--
+Depends On: docs/basic_design.md
+Depended On By: None
+-->
+# 認証・セキュリティ詳細設計書
 
 **対象機能:** FN-01 (認証・認可)
 

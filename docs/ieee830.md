@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/requirements.md, docs/usecases.md
+Depended On By: docs/basic_design.md
+-->
 # ソフトウェア要求仕様書 (SRS)
 **Software Requirements Specification**
 

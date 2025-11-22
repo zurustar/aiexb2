@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/basic_design.md
+Depended On By: None
+-->
 # コラボレーション機能詳細設計書
 
 **対象機能:** FN-05 (代理操作), FN-06 (外部連携), FN-10 (承認ワークフロー), REQ-05 (公開範囲設定), FN-01 (権限管理の一部)

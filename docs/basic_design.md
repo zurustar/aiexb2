@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/ieee830.md
+Depended On By: docs/detailed/01_auth_security.md, docs/detailed/02_schedule_resource.md, docs/detailed/03_ai_assistant.md, docs/detailed/04_collaboration.md, docs/detailed/05_common_infra.md
+-->
 # 基本設計書 (Basic Design Document)
 
 | 項目 | 内容 |
