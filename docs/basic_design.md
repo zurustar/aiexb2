@@ -22,14 +22,14 @@
 
 ```mermaid
 graph TD
-    User[User (Browser/Mobile)] -->|HTTPS| LB[Load Balancer]
-    LB --> FE[Frontend Server (Next.js)]
-    FE -->|API| BE[Backend Server (Go/Node.js)]
+    User["User (Browser/Mobile)"] -->|HTTPS| LB[Load Balancer]
+    LB --> FE["Frontend Server (Next.js)"]
+    FE -->|API| BE["Backend Server (Go/Node.js)"]
     BE -->|Read/Write| DB[(Primary DB - PostgreSQL)]
     BE -->|Read Only| DB_Read[(Read Replica - PostgreSQL)]
     BE -->|Cache| Redis[(Redis)]
     BE -->|Async| Worker[Background Worker]
-    BE -->|API| AI[AI Service (LLM)]
+    BE -->|API| AI["AI Service (LLM)"]
     BE -->|SMTP| Mail[Mail Server]
     BE -->|SAML/OIDC| IdP[Identity Provider]
 ```
