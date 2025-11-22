@@ -1,0 +1,1 @@
+docs/ieee830.mdやdocs/basic_design.mdに基づき、docs/detailed/02_schedule_resource.mdを編集してください。
