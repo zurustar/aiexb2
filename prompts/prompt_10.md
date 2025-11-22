@@ -1,0 +1,1 @@
+docs/ieee830.mdやdocs/basic_design.mdに基づき、docs/detailed/03_ai_assistant.mdを編集してください。

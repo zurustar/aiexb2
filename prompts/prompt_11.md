@@ -1,0 +1,1 @@
+docs/ieee830.mdやdocs/basic_design.mdに基づき、docs/detailed/04_collaboration.mdを編集してください。

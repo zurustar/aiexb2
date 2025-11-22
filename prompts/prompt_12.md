@@ -1,0 +1,1 @@
+docs/ieee830.mdやdocs/basic_design.mdに基づき、docs/detailed/05_common_infra.mdを編集してください。
