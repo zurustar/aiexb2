@@ -1,0 +1,43 @@
+@startuml
+left to right direction
+actor "一般社員 (User)" as User
+actor "秘書/代理人 (Proxy)" as Proxy
+actor "システム管理者 (Admin)" as Admin
+actor "AIアシスタント (System)" as AI
+
+package "Enterprise Schedule Management System" {
+    usecase "UC-01: 会議室を伴う新規予定の登録" as UC01
+    usecase "UC-02: AIアシスタントによるスマート日程調整" as UC02
+    usecase "UC-03: 代理人による予定登録" as UC03
+    usecase "UC-04: 公開範囲設定とプライバシー制御" as UC04
+    usecase "UC-05: 繰り返し予定の変更・削除" as UC05
+    usecase "UC-06: 外部ゲストの招待と連携" as UC06
+    usecase "UC-07: 会議室チェックインと自動開放" as UC07
+    usecase "UC-08: 予定の延長" as UC08
+}
+
+User --> UC01
+User --> UC02
+User --> UC04
+User --> UC05
+User --> UC06
+User --> UC07
+User --> UC08
+
+Proxy --> UC03
+Proxy --|> User : 継承
+
+UC02 ..> AI : <<include>>
+UC03 ..> UC01 : <<include>>
+
+note right of UC02
+  自然言語で指示
+  空き時間・リソース自動提案
+end note
+
+note right of UC07
+  利用開始確認
+  未チェックインで自動キャンセル
+end note
+
+@enduml

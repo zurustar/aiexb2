@@ -1,0 +1,1 @@
+aiexb2/requireents.mdとaiexb2/usecase.mdを元にしてIEEE標準フォーマットで出力したaiexb2/ieee830.mdを更新してください。
