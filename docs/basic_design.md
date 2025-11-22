@@ -4,7 +4,7 @@
 | :--- | :--- |
 | **プロジェクト名称** | 企業向け次世代統合スケジュール管理システム |
 | **文書バージョン** | 1.0.0 |
-| **作成日** | 2025年11月22日 |
+| **作成日** | 2025年11月23日 |
 | **対象システム** | Enterprise Schedule Management System (ESMS) |
 
 ## 1. はじめに
@@ -58,6 +58,9 @@ SRSの機能要件に基づき、以下の機能を実装する。
 | **FN-06** | 外部連携 | 社外ゲストへの招待メール送信、参加可否の取り込み。 | REQ-08 |
 | **FN-07** | チェックイン | 利用開始確認、未チェックイン時の自動キャンセル。 | REQ-09 |
 | **FN-08** | 通知 | メールおよびチャットツールへの通知。 | 3.1.2 |
+| **FN-09** | 会議準備支援 | 予定内容に基づく資料・議事録のレコメンド。 | REQ-10 |
+| **FN-10** | 承認ワークフロー | 重要会議の上長承認プロセス。 | REQ-11 |
+| **FN-11** | キャンセルポリシー | 直前キャンセルの警告とペナルティ記録。 | REQ-12 |
 
 ### 3.2 重要ロジック設計
 
@@ -112,7 +115,9 @@ erDiagram
         datetime start_at
         datetime end_at
         string rrule "Recurrence Rule"
+        string rrule "Recurrence Rule"
         boolean is_private
+        string approval_status "Pending, Confirmed, Rejected"
     }
 
     ReservationParticipants {
@@ -166,6 +171,9 @@ graph TD
     
     Dashboard --> Settings[設定画面]
     Settings --> ProxySettings[代理人設定]
+    
+    Dashboard --> ApprovalList[承認依頼一覧]
+    EventDetail --> PrepSuggest[準備サジェスト]
 ```
 
 ### 5.2 API設計方針
