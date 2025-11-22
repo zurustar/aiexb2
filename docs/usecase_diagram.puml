@@ -3,6 +3,7 @@ left to right direction
 actor "一般社員 (User)" as User
 actor "秘書/代理人 (Proxy)" as Proxy
 actor "システム管理者 (Admin)" as Admin
+actor "承認者 (Approver)" as Approver
 actor "AIアシスタント (System)" as AI
 
 package "Enterprise Schedule Management System" {
@@ -14,6 +15,9 @@ package "Enterprise Schedule Management System" {
     usecase "UC-06: 外部ゲストの招待と連携" as UC06
     usecase "UC-07: 会議室チェックインと自動開放" as UC07
     usecase "UC-08: 予定の延長" as UC08
+    usecase "UC-09: AIによる会議準備サジェスト" as UC09
+    usecase "UC-10: 重要会議の承認フロー" as UC10
+    usecase "UC-11: 予定のキャンセルとペナルティ確認" as UC11
 }
 
 User --> UC01
@@ -23,11 +27,16 @@ User --> UC05
 User --> UC06
 User --> UC07
 User --> UC08
+User --> UC09
+User --> UC10
+Approver --> UC10
+User --> UC11
 
 Proxy --> UC03
 Proxy --|> User : 継承
 
 UC02 ..> AI : <<include>>
+UC09 ..> AI : <<include>>
 UC03 ..> UC01 : <<include>>
 
 note right of UC02
