@@ -22,6 +22,8 @@ Depended On By: None
     ```
 - **非同期処理**:
     - APIサーバーは通知リクエストを **Redis Job Queue** (e.g., Asynq, Bull) にエンキューし、即座にレスポンスを返す。
+    - **Idempotency:** ジョブIDは `ReservationID + JobType` で生成し、重複実行を防止する。
+    - **Dead Letter Queue (DLQ):** 3回失敗したジョブはDLQへ送られ、手動調査対象とする。
     - バックグラウンドワーカーがキューからジョブを取り出し、実際の送信処理（SMTP, Webhook）を実行する。
 
 ### 2.2 通知チャネル
@@ -94,6 +96,15 @@ CloudWatch Logs / Datadog 等での解析を容易にするため、**JSON構造
 -   **WARN**: 正常ではないが動作継続可能（APIリトライ発生、バリデーションエラー多発等）。
 -   **INFO**: 正常系の主要イベント（ログイン、予約作成、バッチ開始/終了）。
 -   **DEBUG**: 開発・デバッグ用の詳細情報（SQLクエリ、内部変数値）。本番環境では原則出力しない。
+
+### 4.3 可観測性 (Observability)
+-   **Tracing:** OpenTelemetry を導入し、リクエストの分散トレーシングを行う。
+-   **Metrics:** Prometheus 等で以下の主要メトリクスを収集し、Grafana で可視化する。
+    -   `http_request_duration_seconds`: APIレイテンシ (p95, p99)
+    -   `reservation_success_total`: 予約作成成功数
+    -   `job_failure_total`: バックグラウンドジョブ失敗数
+    -   `llm_request_duration_seconds`: AI応答時間
+-   **Alerting:** SLO (Service Level Objective) 違反時にアラートを発報する（例: APIエラー率 > 0.5%）。
 
 ## 5. フロントエンド共通コンポーネント
 
