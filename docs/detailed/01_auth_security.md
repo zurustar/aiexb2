@@ -4,21 +4,89 @@
 
 ## 1. はじめに
 本ドキュメントは、ESMSにおける認証および認可機能の詳細設計を記述する。
+本システムは、社内統合ID基盤 (IdP) との連携を前提とし、OIDC (OpenID Connect) プロトコルを採用する。
 
-## 2. 設計項目 (TODO)
+## 2. ID連携 (SAML/OIDC) フロー
 
-### 2.1 ID連携 (SAML/OIDC) フロー
-- [ ] IdP (Identity Provider) とのシーケンス図
-- [ ] 属性マッピング (Claims mapping)
+### 2.1 OIDC 認証シーケンス (Authorization Code Flow)
+フロントエンド (SPA) とバックエンド (API) が分離しているため、セキュリティを考慮し、BFF (Backend for Frontend) パターンまたはバックエンド主導の認可コードフローを採用する。ここではバックエンドでトークンをハンドリングする構成とする。
 
-### 2.2 JWTトークン設計
-- [ ] トークンフォーマット (Header, Payload, Signature)
-- [ ] 有効期限とリフレッシュトークン戦略
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant Backend
+    participant IdP
 
-### 2.3 ロール権限マトリクス (RBAC)
-- [ ] ロール定義 (一般社員, 秘書, 管理者)
-- [ ] リソースごとのアクセス権限表
+    User->>Browser: アクセス
+    Browser->>Backend: GET /auth/login
+    Backend-->>Browser: 302 Redirect to IdP (state, nonce, scope)
+    Browser->>IdP: 認証リクエスト
+    User->>IdP: ログイン操作
+    IdP-->>Browser: 302 Redirect to Backend (code, state)
+    Browser->>Backend: GET /auth/callback?code=...
+    Backend->>IdP: POST /token (code, client_secret)
+    IdP-->>Backend: ID Token, Access Token, Refresh Token
+    Backend->>Backend: ID Token検証 & ユーザー特定/作成
+    Backend->>Backend: セッション作成 (Redis)
+    Backend-->>Browser: 302 Redirect to App (Set-Cookie: session_id)
+    Browser->>Backend: API Request (Cookie: session_id)
+    Backend-->>Browser: API Response
+```
 
-### 2.4 セッション管理
-- [ ] セッションストア (Redis) 設計
-- [ ] タイムアウトと無効化処理
+### 2.2 属性マッピング (Claims Mapping)
+IdPから取得したID Tokenのクレームを、本システムのUserテーブルへ以下の通りマッピングする。
+
+| IdP Claim | User Table Column | 説明 | 備考 |
+| :--- | :--- | :--- | :--- |
+| `sub` | `sub` (UK) | ユーザー識別子 | IdP側で不変のIDを使用 |
+| `email` | `email` | メールアドレス | |
+| `name` | `name` | 表示名 | |
+| `groups` | `role` | ロール | グループ名からロールへの変換ロジックを実装 |
+
+## 3. JWTトークン設計
+
+本システム内部（フロントエンド-バックエンド間）のセッション管理には、HttpOnly Cookieを用いたセッションID方式、またはCookieにJWTを格納する方式を採用する。ここでは、ステートレス性とスケーラビリティを考慮し、**CookieにJWT (Access Token) を格納する方式** を基本とするが、セキュリティ要件によりOpaqueなセッションID + Redis (サーバーサイドセッション) とすることも可能である。
+*本設計では、セキュリティと取り回しのバランスから「サーバーサイドセッション (Redis)」を採用する。*
+
+### 3.1 セッション管理 (Redis)
+JWTをクライアントに渡さず、バックエンドで管理することで、即時無効化 (Logout/Ban) を可能にする。
+
+*   **Session ID:** ランダムな文字列 (32byte以上)
+*   **Cookie:** `HttpOnly`, `Secure`, `SameSite=Lax`
+
+### 3.2 Redis Key Design
+| Key Pattern | Type | Value | TTL | 説明 |
+| :--- | :--- | :--- | :--- | :--- |
+| `session:{session_id}` | Hash | `{user_id, role, ip, ua, created_at}` | 24h | アクティブなセッション情報 |
+| `user_sessions:{user_id}` | Set | `{session_id}` | - | ユーザーごとの全セッション管理 (強制ログアウト用) |
+
+## 4. ロール権限マトリクス (RBAC)
+
+### 4.1 ロール定義
+| ロールID | ロール名称 | 説明 |
+| :--- | :--- | :--- |
+| **GENERAL** | 一般社員 | 自身の予定管理、リソース予約が可能。 |
+| **SECRETARY** | 秘書/代理人 | 委譲された他者の予定管理が可能。 |
+| **ADMIN** | システム管理者 | 全ユーザー・リソースの管理、システム設定が可能。 |
+
+### 4.2 アクセス権限表
+| リソース | 操作 | GENERAL | SECRETARY | ADMIN | 備考 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **自身の予定** | CRUD | ○ | ○ | ○ | |
+| **他者の予定** | Read | △ | △ | ○ | 公開設定に依存 |
+| **他者の予定** | Write | × | △ | ○ | 代理権限があれば可 |
+| **リソース(会議室)** | Read | ○ | ○ | ○ | |
+| **リソース(会議室)** | Reserve | ○ | ○ | ○ | |
+| **リソース(備品)** | Reserve | ○ | ○ | ○ | |
+| **ユーザー管理** | CRUD | × | × | ○ | |
+| **システム設定** | Write | × | × | ○ | |
+
+## 5. セキュリティ対策詳細
+
+### 5.1 CSRF対策
+*   **Double Submit Cookie** または **SameSite Cookie** を利用。
+*   更新系APIにはCSRFトークンを必須とする。
+
+### 5.2 セッションハイジャック対策
+*   セッション作成時のIPアドレスとUser-Agentを記録し、APIアクセス時に検証を行う（大幅な変更があれば再認証を要求）。
