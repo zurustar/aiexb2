@@ -2,7 +2,11 @@
 Depends On: docs/basic_design.md
 Depended On By: None
 -->
-# AIアシスタント機能詳細設計書
+# AIアシスタント機能詳細設計書 (Future Scope)
+
+> [!NOTE]
+> 本ドキュメントに記載されている機能は、すべて**将来のリリース (Future Scope)** での実装を予定しています。
+> 今回のバージョン (v1.0) には含まれません。
 
 **対象機能:** FN-04 (AI日程調整), FN-09 (会議準備支援)
 

@@ -103,7 +103,6 @@ CloudWatch Logs / Datadog 等での解析を容易にするため、**JSON構造
     -   `http_request_duration_seconds`: APIレイテンシ (p95, p99)
     -   `reservation_success_total`: 予約作成成功数
     -   `job_failure_total`: バックグラウンドジョブ失敗数
-    -   `llm_request_duration_seconds`: AI応答時間
 -   **Alerting:** SLO (Service Level Objective) 違反時にアラートを発報する（例: APIエラー率 > 0.5%）。
 
 ## 5. フロントエンド共通コンポーネント
