@@ -24,18 +24,27 @@ Depended On By: docs/detailed/01_auth_security.md, docs/detailed/02_schedule_res
 ### 2.1 論理アーキテクチャ構成
 本システムは、クライアントサイドレンダリング (CSR) とサーバーサイドレンダリング (SSR) を組み合わせたWebアプリケーションとして構成する。
 
-#### Phase 1 アーキテクチャ構成
+#### Phase 1 アーキテクチャ構成（オンプレミス基本構成）
 ```mermaid
 graph TD
-    User["User (Browser/Mobile)"] -->|HTTPS| LB[Load Balancer]
-    LB --> FE["Frontend Server (Next.js)"]
-    FE -->|API| BE["Backend Server (Go)"]
-    BE -->|Read/Write| DB[(Primary DB - PostgreSQL)]
-    BE -->|Read Only| DB_Read[(Read Replica - PostgreSQL)]
-    BE -->|Cache| Redis[(Redis)]
-    BE -->|Async| Worker[Background Worker]
-    BE -->|SMTP| Mail[Mail Server]
-    BE -->|SAML/OIDC| IdP[Identity Provider]
+    User["User (Browser/Mobile)"] -->|HTTPS| LB["Load Balancer<br/>(Nginx/HAProxy)"]
+    LB --> FE1["Frontend Server 1<br/>(Next.js + Docker)"]
+    LB --> FE2["Frontend Server 2<br/>(Next.js + Docker)"]
+    FE1 -->|API| BE1["Backend Server 1<br/>(Go + Docker)"]
+    FE2 -->|API| BE2["Backend Server 2<br/>(Go + Docker)"]
+    BE1 -->|Read/Write| DB[(Primary DB<br/>PostgreSQL)]
+    BE2 -->|Read/Write| DB
+    BE1 -->|Read Only| DB_Read1[(Read Replica 1<br/>PostgreSQL)]
+    BE2 -->|Read Only| DB_Read2[(Read Replica 2<br/>PostgreSQL)]
+    BE1 -->|Cache| Redis_M[(Redis Master)]
+    BE2 -->|Cache| Redis_M
+    Redis_M -->|Replication| Redis_S[(Redis Slave)]
+    BE1 -->|Async| Worker[Background Worker]
+    BE2 -->|Async| Worker
+    BE1 -->|SMTP| Mail[Mail Server]
+    BE2 -->|SMTP| Mail
+    BE1 -->|SAML/OIDC| IdP[Identity Provider]
+    BE2 -->|SAML/OIDC| IdP
 ```
 
 #### Phase 2 拡張アーキテクチャ構成
@@ -67,15 +76,41 @@ graph TD
 | **Frontend** | React, Next.js, TypeScript | 高速なレンダリング、SEO対策（社内検索）、型安全性による品質確保。 |
 | **Backend** | Go (Golang) | 高い並行処理性能（goroutine）、静的型付け、コンパイル言語による堅牢性。 |
 | **Database** | PostgreSQL | 複雑なリレーション（多対多）とトランザクション処理への信頼性。 |
-| **Cache** | Redis | セッション管理、頻繁なデータアクセスの高速化。 |
+| **Cache** | Redis (Master-Slave構成) | セッション管理、頻繁なデータアクセスの高速化。冗長化による可用性確保。 |
+| **Load Balancer** | Nginx / HAProxy | 複数サーバーへの負荷分散、SSL終端処理。 |
+| **Container** | Docker | 環境間の移植性確保、デプロイの標準化。 |
+| **IaC** | Terraform | インフラ構成の自動化、環境間の一貫性確保。 |
 
 #### Phase 2 (将来拡張) 追加技術スタック
 | レイヤー | 技術要素 | 選定理由 |
 | :--- | :--- | :--- |
 | **AI Service** | External LLM API (OpenAI/Gemini) | 自然言語処理による日程調整機能の実現。 |
-| **Vector DB** | Pinecone/Weaviate | 会議準備サジェスト用の文書検索。 |
+| **Vector DB** | pgvector (オンプレ) / Pinecone (クラウド) | 会議準備サジェスト用の文書検索。環境に応じて選択。 |
 
-### 2.3 非機能指標 (SLA/SLO/負荷前提)
+#### クラウド移行オプション
+オンプレミス構成からクラウドへの移行時は、以下のマネージドサービスを活用可能：
+- **Database**: RDS (AWS) / Azure Database / Cloud SQL (GCP)
+- **Cache**: ElastiCache (AWS) / Redis Cache (Azure) / Memorystore (GCP)
+- **Container**: ECS (AWS) / Container Instances (Azure) / Cloud Run (GCP)
+
+### 2.3 サーバー構成・スペック要件
+
+#### 推奨サーバー構成（2,000人同時接続対応）
+| サーバー種別 | 台数 | CPU | メモリ | ストレージ | 役割 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Load Balancer** | 2台 | 4コア | 8GB | 100GB SSD | 負荷分散、SSL終端 |
+| **Web/App Server** | 4台 | 8コア | 16GB | 200GB SSD | アプリケーション実行 |
+| **DB Primary** | 1台 | 16コア | 64GB | 1TB SSD | 読み書き処理 |
+| **DB Read Replica** | 2台 | 12コア | 32GB | 1TB SSD | 読み取り専用 |
+| **Redis Master** | 1台 | 8コア | 32GB | 500GB SSD | キャッシュ・セッション |
+| **Redis Slave** | 1台 | 8コア | 32GB | 500GB SSD | 冗長化 |
+
+#### ネットワーク要件
+- **帯域幅**: 1Gbps以上（冗長化推奨）
+- **レイテンシ**: サーバー間 < 1ms
+- **セキュリティ**: VLAN分離、ファイアウォール設定
+
+### 2.4 非機能指標 (SLA/SLO/負荷前提)
 #### Phase 1 負荷前提・SLO
 *   **想定負荷:** アクティブユーザー 10,000人、ピーク同時接続 2,000、1日あたり予約作成 80,000件、通知配信 150,000件。
 *   **目標SLO:**

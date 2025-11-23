@@ -37,14 +37,22 @@ AI（LLM）が学習データとして多く持っており、生成精度が最
 * **データベース:** PostgreSQL (Managed Service)
 * **キャッシュ:** Redis (必須)
     * *理由:* スケジュール参照はRead多頻度のため、RedisでキャッシュしないとDBがパンクする。
-* **インフラ:** AWS (ECS Fargate or App Runner) / Terraform
-    * *理由:* IaC (Infrastructure as Code) もAIに書かせるため、ナレッジが多いTerraformを採用。
+* **インフラ:** オンプレミス（物理サーバー/VM）+ Docker / Terraform
+    * *理由:* 開発・テスト環境でのコスト効率と、顧客要件に応じたクラウド移行の柔軟性を確保。IaC (Infrastructure as Code) もAIに書かせるため、ナレッジが多いTerraformを採用。
+* **デプロイ:** Docker コンテナ化による環境間移植性の確保
+    * *理由:* オンプレ開発からクラウド本番への移行を容易にし、ベンダーロックインを回避。
 
 #### Phase 2 追加技術スタック
 * **AI/LLM:** OpenAI API / Google Gemini API
     * *理由:* 自然言語処理による日程調整機能の実現。
-* **ベクトルDB:** Pinecone / Weaviate
-    * *理由:* 会議準備サジェスト用の文書検索・類似度計算。
+* **ベクトルDB:** Pinecone / Weaviate（クラウド）/ pgvector（オンプレ）
+    * *理由:* 会議準備サジェスト用の文書検索・類似度計算。環境に応じて選択可能。
+
+#### クラウド対応オプション
+本システムはオンプレミス前提で設計されていますが、顧客要件に応じて以下のクラウド環境への移行が可能です：
+* **AWS**: ECS + RDS + ElastiCache
+* **Azure**: Container Instances + Azure Database + Redis Cache  
+* **GCP**: Cloud Run + Cloud SQL + Memorystore
 
 ## 2. AI駆動開発プロセス (AI-Driven Development Strategy)
 
@@ -137,8 +145,16 @@ AI（LLM）が学習データとして多く持っており、生成精度が最
 * **脆弱性管理:** 依存パッケージの SCA、コンテナイメージのスキャン、SAST/DAST を CI に組み込み、重大度 High 以上をブロック。
 
 ### 4.7 スケールアウト/容量計画
-* **オートスケール:** ECS/App Runner の CPU/メモリ/レイテンシを指標に最小2→最大20 タスクでスケール。Redis/DB コネクション上限を事前計算。
+
+#### オンプレミス構成
+* **基本構成:** Webサーバー 4台、DBサーバー 3台（Primary + Read Replica 2台）、Redisサーバー 2台（Master-Slave）
+* **スケールアウト:** 負荷増加時はWebサーバーの水平追加（最大8台まで）。ロードバランサー（Nginx/HAProxy）で負荷分散。
+* **接続プール:** 各Webサーバーあたり DB接続50-100、Redis接続20-50に設定。
 * **性能試験:** 負荷試験シナリオ（朝のスパイク、月末集中）を定義し、毎リリース前に 500 RPS 以上を検証。
+
+#### クラウド拡張オプション
+* **オートスケール:** クラウド移行時は CPU/メモリ/レイテンシを指標に最小2→最大20インスタンスで自動スケール。
+* **マネージドサービス:** RDS/Azure Database等のマネージドDB、ElastiCache/Redis Cache等のマネージドキャッシュを活用可能。
 
 ### 4.8 API 設計品質
 * **バージョニング:** `/v1` プレフィックスを必須とし、後方互換を 6 か月維持。
