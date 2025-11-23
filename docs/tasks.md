@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 13:30 JST
+最終更新: 2025-11-23 13:31 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -68,7 +68,7 @@ Depended On By: None
   - 内容: ユニットテスト
   - 依存: 2.3
 
-- [x] 2.5 予約ドメイン ⚠️ (AI Assistant - 完了 2025-11-23 13:30)
+- [R] 2.5 予約ドメイン ⚠️ (AI Assistant - レビュー待ち 2025-11-23 13:30)
   - ファイル: `backend/internal/domain/reservation.go`
   - 内容: Reservation構造体、RRULE解析・展開ロジック、繰り返し予定の例外処理
   - 依存: 2.1
