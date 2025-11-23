@@ -1,0 +1,16 @@
+name: Deploy (Future)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deployment placeholder
+        run: |
+          echo "Deployment pipeline is not implemented yet."
+          echo "Add build artifacts, environment promotion, and release steps here."

@@ -1,15 +1,3 @@
-# .github/workflows/ci.yml
-# CI/CDパイプライン - テスト・ビルド
-#
-# トリガー:
-# - Pull Request作成時
-# - mainブランチへのpush
-#
-# ジョブ:
-# - Backend: Go test, lint
-# - Frontend: npm test, lint, build
-# - Database: マイグレーションテスト
-
 name: CI
 
 on:
@@ -19,15 +7,54 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  # TODO: 実装
-  backend-test:
+  backend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - uses: actions/checkout@v3
-      # TODO: Go test実行
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  frontend-test:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Lint (go vet)
+        run: go vet ./...
+
+      - name: Run backend tests
+        run: go test ./... -coverprofile=coverage.out
+
+  frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
-      - uses: actions/checkout@v3
-      # TODO: npm test実行
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Run frontend tests
+        env:
+          CI: true
+        run: npm run test -- --runInBand
+
+      - name: Build frontend
+        run: npm run build
