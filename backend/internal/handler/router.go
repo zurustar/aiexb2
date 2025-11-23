@@ -31,12 +31,16 @@ func NewRouter(
 		mw:     mw,
 	}
 
-	// グローバルミドルウェア
+	// グローバルミドルウェア（全てのルートに適用）
 	r.Use(mw.CORS)
 	r.Use(mw.Logging)
 	r.Use(mw.RateLimit)
 
-	// ハンドラー登録
+	// 公開エンドポイント（認証不要）
+	// ヘルスチェック
+	r.HandleFunc("/health", HealthCheck).Methods("GET")
+
+	// 認証エンドポイント（認証不要）
 	authHandler := NewAuthHandler(authService)
 	authHandler.RegisterRoutes(r)
 
@@ -54,8 +58,9 @@ func NewRouter(
 	userHandler := NewUserHandler(userRepo)
 	userHandler.RegisterRoutes(protected)
 
-	// ヘルスチェック
-	r.HandleFunc("/health", HealthCheck).Methods("GET")
+	// カスタム404/405ハンドラー
+	r.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
+	r.MethodNotAllowedHandler = http.HandlerFunc(MethodNotAllowedHandler)
 
 	return router
 }
@@ -70,4 +75,14 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{
 		"status": "healthy",
 	})
+}
+
+// NotFoundHandler は404エラーハンドラー
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	WriteError(w, http.StatusNotFound, "NOT_FOUND", "The requested resource was not found")
+}
+
+// MethodNotAllowedHandler は405エラーハンドラー
+func MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
+	WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "The request method is not allowed for this resource")
 }

@@ -34,7 +34,25 @@ func (h *ResourceHandler) RegisterRoutes(r *mux.Router) {
 
 // ListResources はリソース一覧を取得します
 func (h *ResourceHandler) ListResources(w http.ResponseWriter, r *http.Request) {
-	// TODO: リポジトリにListメソッドを追加するか、別の方法で一覧取得
+	// クエリパラメータの検証
+	isActiveParam := r.URL.Query().Get("is_active")
+	var isActiveFilter *bool
+	if isActiveParam != "" {
+		if isActiveParam == "true" {
+			val := true
+			isActiveFilter = &val
+		} else if isActiveParam == "false" {
+			val := false
+			isActiveFilter = &val
+		} else {
+			WriteError(w, http.StatusBadRequest, "INVALID_QUERY_PARAM", "is_active must be 'true' or 'false'")
+			return
+		}
+	}
+
+	// TODO: リポジトリにListメソッドを追加してis_activeフィルタを適用
+	// 現在は空のリストを返す
+	_ = isActiveFilter // 将来の実装で使用予定
 	WriteJSON(w, http.StatusOK, []interface{}{})
 }
 
@@ -74,6 +92,16 @@ func (h *ResourceHandler) CreateResource(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// バリデーション
+	if req.Name == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_NAME", "Name is required")
+		return
+	}
+	if req.Type == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_TYPE", "Type is required")
+		return
+	}
+
 	resource := &domain.Resource{
 		ID:       uuid.New(),
 		Name:     req.Name,
@@ -109,6 +137,12 @@ func (h *ResourceHandler) UpdateResource(w http.ResponseWriter, r *http.Request)
 	var req CreateResourceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
+		return
+	}
+
+	// バリデーション
+	if req.Name == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_NAME", "Name is required")
 		return
 	}
 

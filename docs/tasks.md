@@ -307,27 +307,27 @@ Depended On By: None
   - ファイル: `backend/internal/handler/reservation_handler_test.go`
   - 依存: 7.5
 
-- [R] 7.7 リソースハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:45)
+- [x] 7.7 リソースハンドラー (AI Assistant - 完了 2025-11-23 21:25)
   - ファイル: `backend/internal/handler/resource_handler.go`
   - 内容: /api/v1/resources/* エンドポイント
   - 依存: 4.3, 7.1
   - コメント: GET/LISTのキャッシュ制御やIsActiveフィルタの扱いが明記されていないため、クエリパラメータの検証と304/ETag対応、非活性リソースの扱いを整理すると運用性が上がりそうです。
 
-- [x] 7.8 リソースハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
+- [x] 7.8 リソースハンドラーテスト (AI Assistant - 完了 2025-11-23 21:25)
   - ファイル: `backend/internal/handler/resource_handler_test.go`
   - 依存: 7.7
 
-- [R] 7.9 ユーザーハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:45)
+- [x] 7.9 ユーザーハンドラー (AI Assistant - 完了 2025-11-23 21:25)
   - ファイル: `backend/internal/handler/user_handler.go`
   - 内容: /api/v1/users/* エンドポイント
   - 依存: 4.1, 7.1
   - コメント: 管理者以外のロールがアクセスした場合の403分岐や自己参照更新の制御が見当たらないので、RequireRoleとの併用を含めたロール別のアクセス制御テストを追加したいです。
 
-- [x] 7.10 ユーザーハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
+- [x] 7.10 ユーザーハンドラーテスト (AI Assistant - 完了 2025-11-23 21:25)
   - ファイル: `backend/internal/handler/user_handler_test.go`
   - 依存: 7.9
 
-- [R] 7.11 ルーティング設定 (AI Assistant - レビュー待ち 2025-11-23 16:45)
+- [x] 7.11 ルーティング設定 (AI Assistant - 完了 2025-11-23 21:25)
   - ファイル: `backend/internal/handler/router.go`
   - 内容: ルート設定、ミドルウェアチェーン
   - 依存: 7.1, 7.3, 7.5, 7.7, 7.9

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/your-org/esms/internal/domain"
@@ -56,33 +57,128 @@ func TestResourceHandler_ListResources(t *testing.T) {
 	mockRepo := new(MockResourceRepository)
 	h := handler.NewResourceHandler(mockRepo)
 
-	req := httptest.NewRequest("GET", "/api/v1/resources", nil)
-	w := httptest.NewRecorder()
+	tests := []struct {
+		name         string
+		queryParam   string
+		expectedCode int
+		expectedErr  string
+	}{
+		{
+			name:         "No filter",
+			queryParam:   "",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Valid is_active=true",
+			queryParam:   "?is_active=true",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Valid is_active=false",
+			queryParam:   "?is_active=false",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Invalid is_active value",
+			queryParam:   "?is_active=invalid",
+			expectedCode: http.StatusBadRequest,
+			expectedErr:  "INVALID_QUERY_PARAM",
+		},
+	}
 
-	h.ListResources(w, req)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/api/v1/resources"+tt.queryParam, nil)
+			w := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusOK, w.Code)
+			h.ListResources(w, req)
+
+			assert.Equal(t, tt.expectedCode, w.Code)
+			if tt.expectedErr != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedErr)
+			}
+		})
+	}
 }
 
 func TestResourceHandler_CreateResource(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		setupMock    func(*MockResourceRepository)
+		expectedCode int
+		expectedErr  string
+	}{
+		{
+			name: "Success",
+			body: `{
+				"name": "Meeting Room A",
+				"type": "MEETING_ROOM",
+				"location": "Building 1, Floor 2",
+				"capacity": 10
+			}`,
+			setupMock: func(m *MockResourceRepository) {
+				m.On("Create", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedCode: http.StatusCreated,
+		},
+		{
+			name: "Missing name",
+			body: `{
+				"type": "MEETING_ROOM",
+				"location": "Building 1, Floor 2"
+			}`,
+			setupMock:    func(m *MockResourceRepository) {},
+			expectedCode: http.StatusBadRequest,
+			expectedErr:  "INVALID_NAME",
+		},
+		{
+			name: "Missing type",
+			body: `{
+				"name": "Meeting Room A",
+				"location": "Building 1, Floor 2"
+			}`,
+			setupMock:    func(m *MockResourceRepository) {},
+			expectedCode: http.StatusBadRequest,
+			expectedErr:  "INVALID_TYPE",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(MockResourceRepository)
+			h := handler.NewResourceHandler(mockRepo)
+
+			tt.setupMock(mockRepo)
+
+			req := httptest.NewRequest("POST", "/api/v1/resources", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			h.CreateResource(w, req)
+
+			assert.Equal(t, tt.expectedCode, w.Code)
+			if tt.expectedErr != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedErr)
+			}
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestResourceHandler_GetResource_NotFound(t *testing.T) {
 	mockRepo := new(MockResourceRepository)
 	h := handler.NewResourceHandler(mockRepo)
 
-	mockRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	id := uuid.New()
+	mockRepo.On("GetByID", mock.Anything, id).Return(nil, assert.AnError)
 
-	body := strings.NewReader(`{
-		"name": "Meeting Room A",
-		"type": "MEETING_ROOM",
-		"location": "Building 1, Floor 2",
-		"capacity": 10
-	}`)
-
-	req := httptest.NewRequest("POST", "/api/v1/resources", body)
-	req.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest("GET", "/api/v1/resources/"+id.String(), nil)
+	req = mux.SetURLVars(req, map[string]string{"id": id.String()})
 	w := httptest.NewRecorder()
 
-	h.CreateResource(w, req)
+	h.GetResource(w, req)
 
-	assert.Equal(t, http.StatusCreated, w.Code)
-	mockRepo.AssertExpectations(t)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "NOT_FOUND")
 }
