@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 12:45 JST
+最終更新: 2025-11-23 12:57 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -21,16 +21,22 @@ Depended On By: None
 - [x] 1.1 データベース初期化スクリプト (AI Assistant - 完了 2025-11-23 12:33)
   - ファイル: `database/init/01_create_extensions.sql`
   - 内容: PostgreSQL拡張機能の有効化（UUID、pgvector等）
+  - レビュー (2025-11-23 AI Assistant): 問題なし。
+  - 再確認 (2025-11-23 AI Assistant): 変更なし。指摘事項なし。
 
-- [x] 1.2 初期スキーママイグレーション (Up) ⚠️ (AI Assistant - 完了・レビュー承認 2025-11-23 12:39)
+- [R] 1.2 初期スキーママイグレーション (Up) ⚠️ (AI Assistant - 完了・レビュー承認 2025-11-23 12:39)
   - ファイル: `backend/migrations/000001_init_schema.up.sql`
   - 内容: 全テーブル定義、パーティション設定、基本インデックス
   - 依存: 1.1
+  - レビュー (2025-11-23 AI Assistant): `reservations` が複合PKのみで `id` のユニーク制約がなく、`reservation_instances` に外部キーも無いため孤立レコードを防げません。`id` 単独の UNIQUE 付与とパーティション対応の外部キー追加が必要です。
+  - 再レビュー (2025-11-23 AI Assistant): 現行スキーマでも `reservations.id` の UNIQUE と `reservation_instances.reservation_id` の外部キーが未追加のまま。前回指摘の整合性リスクは未解消です。
 
-- [x] 1.3 初期スキーママイグレーション (Down) (AI Assistant - 完了 2025-11-23 12:42)
+- [R] 1.3 初期スキーママイグレーション (Down) (AI Assistant - 完了 2025-11-23 12:42)
   - ファイル: `backend/migrations/000001_init_schema.down.sql`
   - 内容: 全テーブルのDROP処理
   - 依存: 1.2
+  - レビュー (2025-11-23 AI Assistant): Up側の外部キー/ユニーク不足に合わせた整合性確認が未解決のため、併せて見直しが必要です。
+  - 再レビュー (2025-11-23 AI Assistant): Up側で外部キー/UNIQUE が未改善のため、Down側も同じ懸念が継続。依存する修正と合わせた見直しが必要です。
 
 - [x] 1.4 シードデータ - ユーザー (AI Assistant - 完了 2025-11-23 12:43)
   - ファイル: `database/seed/users.sql`
@@ -41,6 +47,8 @@ Depended On By: None
   - ファイル: `database/seed/resources.sql`
   - 内容: テスト用会議室・備品データ
   - 依存: 1.2
+  - レビュー (2025-11-23 AI Assistant): 内容・UUID固定値ともに妥当。
+  - 再確認 (2025-11-23 AI Assistant): 変更なしで妥当。
 
 ### Phase 1 チェックポイント
 - [ ] Phase 1 レビュー完了
