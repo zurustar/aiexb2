@@ -33,9 +33,9 @@ type AuditLog struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID
 	Action     AuditAction
-	Resource   string // 対象リソース名（例: "reservations", "users"）
-	ResourceID string // 対象リソースID
-	Details    map[string]interface{}
+	TargetType string                 // 対象リソース種別（例: "reservations", "users"）
+	TargetID   string                 // 対象リソースID
+	Details    map[string]interface{} // 詳細情報
 	IPAddress  string
 	UserAgent  string
 	CreatedAt  time.Time
@@ -50,13 +50,13 @@ func (a *AuditLog) GenerateSignature(secretKey string) (string, error) {
 	}
 
 	// 署名対象のデータを結合
-	// 順序: ID:UserID:Action:Resource:ResourceID:Details:CreatedAt:IPAddress:UserAgent
+	// 順序: ID:UserID:Action:TargetType:TargetID:Details:CreatedAt:IPAddress:UserAgent
 	data := fmt.Sprintf("%s:%s:%s:%s:%s:%s:%d:%s:%s",
 		a.ID.String(),
 		a.UserID.String(),
 		string(a.Action),
-		a.Resource,
-		a.ResourceID,
+		a.TargetType,
+		a.TargetID,
 		string(detailsJSON),
 		a.CreatedAt.UnixNano(),
 		a.IPAddress,
