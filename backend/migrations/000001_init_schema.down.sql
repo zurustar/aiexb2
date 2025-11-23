@@ -25,8 +25,7 @@ DROP FUNCTION IF EXISTS update_updated_at_column();
 -- テーブルの削除（依存関係の逆順）
 -- ============================================================================
 -- 注: CASCADE指定により、以下も自動的に削除されます:
---   - 外部キー制約 (fk_reservation_instances_reservation_id等)
---   - UNIQUEインデックス (idx_reservations_id_unique等)
+--   - 外部キー制約 (fk_reservation_instances_reservation等)
 --   - その他の制約とインデックス
 
 -- 監査ログテーブル（他テーブルへの依存なし）

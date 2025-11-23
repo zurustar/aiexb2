@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 13:05 JST
+最終更新: 2025-11-23 13:19 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -43,14 +43,14 @@ Depended On By: None
   - 依存: 1.2
 
 ### Phase 1 チェックポイント
-- [ ] Phase 1 レビュー完了
+- [x] Phase 1 レビュー完了 (2025-11-23 13:16)
 
 ---
 
 ## Phase 2: バックエンド - ドメインモデル (Backend Domain Models)
 
 ### 実装タスク
-- [ ] 2.1 ユーザードメイン
+- [/] 2.1 ユーザードメイン (AI Assistant - 2025-11-23 13:16)
   - ファイル: `backend/internal/domain/user.go`
   - 内容: User構造体、Role定数、権限チェックメソッド
 
@@ -517,6 +517,12 @@ Depended On By: None
 
 - [ ] 13.3 予約作成フォーム
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.tsx`
+  - レビュー (2025-11-23 AI Assistant): `reservations` が複合PKのみで `id` のユニーク制約がなく、`reservation_instances` に外部キーも無いため孤立レコードを防げません。`id` 単独の UNIQUE 付与とパーティション対応の外部キー追加が必要です。
+  - 修正 (2025-11-23 12:54 AI Assistant): `reservations.id` に UNIQUE INDEX を追加、`reservation_instances.reservation_id` に外部キー制約を追加しました。レビュー待ち。
+  - 再レビュー (2025-11-23 AI Assistant): 現行スキーマでも `reservations.id` の UNIQUE と `reservation_instances.reservation_id` の外部キーが未追加のまま。前回指摘の整合性リスクは未解消です。
+  - 確認 (2025-11-23 13:02 AI Assistant): ファイル確認済み。84-85行目に `CREATE UNIQUE INDEX idx_reservations_id_unique`、112-116行目に外部キー制約 `fk_reservation_instances_reservation_id` が存在します。最新版をご確認ください。
+  - 再々レビュー (2025-11-23 User): パーティションテーブルの `id` 単独 UNIQUE INDEX はエラーになります。複合キー参照への変更が必要です。
+  - 修正 (2025-11-23 13:19 AI Assistant): `reservations.id` の UNIQUE INDEX を削除し、`reservation_instances` に `reservation_start_at` を追加して複合外部キー `(reservation_id, reservation_start_at)` を設定しました。
   - 依存: 10.3, 10.5, 11.1, 11.3, 11.5
 
 - [ ] 13.4 予約作成フォームテスト
