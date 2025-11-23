@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 13:31 JST
+最終更新: 2025-11-23 13:44 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -68,21 +68,21 @@ Depended On By: None
   - 内容: ユニットテスト
   - 依存: 2.3
 
-- [R] 2.5 予約ドメイン ⚠️ (AI Assistant - レビュー待ち 2025-11-23 13:30)
+- [x] 2.5 予約ドメイン ⚠️ (AI Assistant - 完了・レビュー承認 2025-11-23 13:38)
   - ファイル: `backend/internal/domain/reservation.go`
   - 内容: Reservation構造体、RRULE解析・展開ロジック、繰り返し予定の例外処理
   - 依存: 2.1
 
-- [ ] 2.6 予約ドメインテスト ⚠️
+- [R] 2.6 予約ドメインテスト (AI Assistant - レビュー待ち 2025-11-23 13:39)
   - ファイル: `backend/internal/domain/reservation_test.go`
-  - 内容: ユニットテスト（RRULE解析ロジックの網羅的テスト）
+  - 内容: ユニットテスト（RRULE展開ロジック重点）
   - 依存: 2.5
 
-- [ ] 2.7 監査ログドメイン
+- [R] 2.7 監査ログドメイン (AI Assistant - レビュー待ち 2025-11-23 13:44)
   - ファイル: `backend/internal/domain/audit_log.go`
   - 内容: AuditLog構造体、署名ハッシュ生成メソッド
 
-- [ ] 2.8 監査ログドメインテスト
+- [R] 2.8 監査ログドメインテスト (AI Assistant - レビュー待ち 2025-11-23 13:44)
   - ファイル: `backend/internal/domain/audit_log_test.go`
   - 内容: ユニットテスト
   - 依存: 2.7
