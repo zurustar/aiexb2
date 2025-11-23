@@ -2,25 +2,39 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/your-org/esms/internal/domain"
 	"github.com/your-org/esms/internal/service"
 )
 
+// ReservationServiceInterface は予約サービスのインターフェース
+type ReservationServiceInterface interface {
+	CreateReservation(ctx context.Context, req *service.CreateReservationRequest) (*domain.Reservation, error)
+	CancelReservation(ctx context.Context, id uuid.UUID, startAt time.Time, userID uuid.UUID) error
+}
+
+// ApprovalServiceInterface は承認サービスのインターフェース
+type ApprovalServiceInterface interface {
+	ApproveReservation(ctx context.Context, reservationID uuid.UUID, startAt time.Time, approverID uuid.UUID) error
+	RejectReservation(ctx context.Context, reservationID uuid.UUID, startAt time.Time, approverID uuid.UUID, reason string) error
+}
+
 // ReservationHandler は予約関連のHTTPハンドラー
 type ReservationHandler struct {
-	reservationService *service.ReservationService
-	approvalService    *service.ApprovalService
+	reservationService ReservationServiceInterface
+	approvalService    ApprovalServiceInterface
 }
 
 // NewReservationHandler は新しいReservationHandlerを作成します
 func NewReservationHandler(
-	reservationService *service.ReservationService,
-	approvalService *service.ApprovalService,
+	reservationService ReservationServiceInterface,
+	approvalService ApprovalServiceInterface,
 ) *ReservationHandler {
 	return &ReservationHandler{
 		reservationService: reservationService,
@@ -61,6 +75,20 @@ func (h *ReservationHandler) CreateReservation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// バリデーション
+	if req.Timezone == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_TIMEZONE", "Timezone is required")
+		return
+	}
+	if req.StartAt.IsZero() || req.EndAt.IsZero() {
+		WriteError(w, http.StatusBadRequest, "INVALID_TIME_RANGE", "StartAt and EndAt are required")
+		return
+	}
+	if req.EndAt.Before(req.StartAt) {
+		WriteError(w, http.StatusBadRequest, "INVALID_TIME_RANGE", "EndAt must be after StartAt")
+		return
+	}
+
 	// UUIDに変換
 	resourceIDs := make([]uuid.UUID, len(req.ResourceIDs))
 	for i, id := range req.ResourceIDs {
@@ -84,6 +112,10 @@ func (h *ReservationHandler) CreateReservation(w http.ResponseWriter, r *http.Re
 
 	reservation, err := h.reservationService.CreateReservation(r.Context(), serviceReq)
 	if err != nil {
+		if err == service.ErrResourceNotAvailable {
+			WriteError(w, http.StatusConflict, "RESOURCE_CONFLICT", "One or more resources are not available")
+			return
+		}
 		WriteError(w, http.StatusBadRequest, "CREATE_FAILED", err.Error())
 		return
 	}
@@ -165,6 +197,10 @@ func (h *ReservationHandler) ApproveReservation(w http.ResponseWriter, r *http.R
 
 	err = h.approvalService.ApproveReservation(r.Context(), id, startAt, session.UserID)
 	if err != nil {
+		if err == service.ErrNotApprover {
+			WriteError(w, http.StatusForbidden, "FORBIDDEN", "User is not an approver")
+			return
+		}
 		WriteError(w, http.StatusBadRequest, "APPROVE_FAILED", err.Error())
 		return
 	}
@@ -209,6 +245,10 @@ func (h *ReservationHandler) RejectReservation(w http.ResponseWriter, r *http.Re
 
 	err = h.approvalService.RejectReservation(r.Context(), id, startAt, session.UserID, req.Reason)
 	if err != nil {
+		if err == service.ErrNotApprover {
+			WriteError(w, http.StatusForbidden, "FORBIDDEN", "User is not an approver")
+			return
+		}
 		WriteError(w, http.StatusBadRequest, "REJECT_FAILED", err.Error())
 		return
 	}

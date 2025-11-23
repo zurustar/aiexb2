@@ -297,13 +297,13 @@ Depended On By: None
   - ファイル: `backend/internal/handler/auth_handler_test.go`
   - 依存: 7.3
 
-- [R] 7.5 予約ハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:40)
+- [x] 7.5 予約ハンドラー (AI Assistant - 完了 2025-11-23 21:15)
   - ファイル: `backend/internal/handler/reservation_handler.go`
   - 内容: /api/v1/events/* エンドポイント、統一レスポンス形式
   - 依存: 5.3, 7.1, 3.5
   - コメント: バリデーションエラーと競合エラーのレスポンス形式が統一されているか確認できないので、エラーボディのスキーマを共通化し、タイムゾーン未指定や重複予約時のHTTPコードを明確に分けるとクライアント実装が安定します。
 
-- [x] 7.6 予約ハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
+- [x] 7.6 予約ハンドラーテスト (AI Assistant - 完了 2025-11-23 21:15)
   - ファイル: `backend/internal/handler/reservation_handler_test.go`
   - 依存: 7.5
 
