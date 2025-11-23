@@ -4,13 +4,13 @@ import { ApiClient } from "@/lib/api-client";
 import { PaginatedResponse } from "@/types/api";
 import { Reservation } from "@/types/models";
 
-type EventFilters = {
+export type EventFilters = {
   page?: number;
   pageSize?: number;
   organizerId?: string;
 };
 
-type EventPayload = Pick<Reservation, "title" | "description" | "startAt" | "endAt" | "timezone"> &
+export type EventPayload = Pick<Reservation, "title" | "description" | "startAt" | "endAt" | "timezone"> &
   Partial<Pick<Reservation, "rrule" | "isPrivate" | "approvalStatus">> & {
     resourceIds?: string[];
     participantIds?: string[];
