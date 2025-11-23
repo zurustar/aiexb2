@@ -22,6 +22,25 @@ Depended On By: [Relative Path to Child Document 1], [Relative Path to Child Doc
 *   **Depends On:** The source document(s) that this file is derived from. Changes in the source document usually trigger updates in this file.
 *   **Depended On By:** The downstream document(s) that are derived from this file. Changes in this file usually trigger updates in the downstream documents.
 
+### Rule 3: Design Document Code Policy
+When working on design documents in the `docs/` directory, you **MUST** follow these guidelines for code inclusion:
+
+**ALLOWED in Design Documents:**
+*   Database schema definitions (CREATE TABLE, ALTER TABLE, etc.)
+*   Index definitions (CREATE INDEX)
+*   Partition definitions (CREATE TABLE ... PARTITION OF)
+*   Conceptual algorithms and flow descriptions
+*   Mermaid diagrams and flowcharts
+
+**PROHIBITED in Design Documents:**
+*   Application source code (Go, JavaScript, Python, etc.)
+*   Specific function/method implementations
+*   Error handling implementation details
+*   Monitoring/metrics collection code
+*   Any code that would duplicate what belongs in the actual source code
+
+**Rationale:** Source code itself is the true detailed design document. Design documents should focus on "what to achieve" (concepts), while "how to implement" belongs in the actual source code to avoid duplication and maintain single source of truth.
+
 ## Project Structure & Dependencies
 
 The general flow of documentation dependency is as follows:

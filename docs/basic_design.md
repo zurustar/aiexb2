@@ -216,24 +216,36 @@ COMMIT;
 - **競合時対応**: 代替リソース・時間帯の自動提案
 
 ##### パフォーマンス最適化
-- **インデックス設計**:
-  ```sql
-  -- 時間範囲検索用のGiSTインデックス
-  CREATE INDEX idx_reservation_time_range 
-  ON reservation_instances USING GIST (
-    tstzrange(start_at, end_at), resource_id
-  );
-  
-  -- リソース別検索用
-  CREATE INDEX idx_reservation_resources_lookup
-  ON reservation_resources (resource_id, reservation_instance_id);
-  ```
 - **ロック保持時間**: 最大500ms以内でトランザクション完了
 - **接続プール**: デッドロック発生時の即座な接続解放
 
-#### 3.2.2 繰り返し予定の展開
-*   **戦略:** 繰り返しルール（RRULE）を保持しつつ、検索性能向上のため、直近（例：3年分）の予定インスタンスを実データとして展開する、または検索時に動的に展開するハイブリッド方式を検討する。
-*   **変更時:** 「以降すべて変更」の場合は、既存の将来インスタンスを削除し、新たなルールで再生成する。
+#### 3.2.2 繰り返し予定の物理展開戦略
+
+##### 基本方針
+個別編集可能性を重視し、繰り返し予定も物理的にインスタンス展開する方式を採用。
+
+##### 展開ロジック
+繰り返し予定作成時に、RRULE（iCalendar形式）を解析し、指定された期間（デフォルト2年）分のインスタンスを `reservation_instances` テーブルに物理的に展開する。
+
+**処理概要:**
+1. RRULE文字列の解析（頻度、終了条件、例外日等）
+2. 展開期間内の各発生日時を計算
+3. 各インスタンスを個別レコードとして挿入
+4. 展開されたインスタンス数を返却
+
+##### 個別編集対応
+- **例外インスタンス**: `original_start_at` と `start_at` が異なる場合は個別編集済み
+- **削除処理**: 論理削除（`deleted_at`）で対応
+- **一括変更**: 「以降すべて変更」時は未来インスタンスを再生成
+
+##### 自動展開バッチ
+毎日夜間に実行されるバッチ処理により、展開期間を常に2年先まで維持する。
+
+**処理概要:**
+1. 展開が不足している繰り返し予定を特定
+2. 18ヶ月先以降のインスタンスが存在しない予定を抽出
+3. 不足分のインスタンスを自動生成・挿入
+4. 処理結果をログに記録
 
 ### 3.3 ワークフロー詳細
 *   **リソース権限制御:** 特定リソース（役員会議室、高額備品等）は役職レベルでアクセス制御。予約時に権限チェックを実施し、権限不足時はエラーを返却。
@@ -245,7 +257,117 @@ COMMIT;
 
 ## 4. データ設計
 
-### 4.1 ER図 (Entity Relationship Diagram)
+### 4.1 パーティショニング戦略
+
+#### 4.1.1 年別パーティション設計
+大量データ（月200,000件想定）の効率的な管理のため、年別パーティショニングを実装。
+
+```sql
+-- 親テーブル（パーティション化）
+CREATE TABLE reservations (
+    id UUID PRIMARY KEY,
+    organizer_id UUID NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+) PARTITION BY RANGE (start_at);
+
+-- 年別パーティション（自動作成）
+CREATE TABLE reservations_2025 PARTITION OF reservations
+FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
+
+CREATE TABLE reservations_2026 PARTITION OF reservations
+FOR VALUES FROM ('2026-01-01') TO ('2027-01-01');
+```
+
+#### 4.1.2 自動パーティション管理
+現在年から2年先までのパーティションを自動的に作成・維持する仕組みを実装。
+
+**処理概要:**
+1. 現在年を基準に、必要なパーティション年を計算
+2. 各年について、パーティションテーブルの存在確認
+3. 存在しない場合のみ、年別パーティションを作成
+4. 毎月1日にcronジョブとして実行
+
+#### 4.1.3 DBA調整可能な設計
+運用開始後にDBAがパーティション戦略を変更できるよう、設定管理テーブルと移行支援機能を提供。
+
+**設定管理:**
+- パーティション戦略（yearly/monthly/quarterly）
+- データ保持期間の設定
+- 自動作成の有効/無効制御
+
+**移行支援:**
+- 既存データの新パーティション戦略への移行
+- 移行スクリプトの自動生成
+- 段階的移行による無停止対応
+
+### 4.2 インデックス戦略
+
+#### 4.2.1 段階的インデックス設計
+使用頻度に基づく優先度付きインデックス戦略を採用。
+
+##### Phase 1: カレンダー表示最適化（最優先）
+```sql
+-- 個人カレンダー表示（最頻繁アクセス）
+CREATE INDEX CONCURRENTLY idx_reservations_user_calendar
+ON reservations (organizer_id, start_at DESC)
+INCLUDE (title, end_at, is_private);
+
+-- 参加者別予定一覧
+CREATE INDEX CONCURRENTLY idx_participants_calendar  
+ON reservation_participants (user_id, status)
+INCLUDE (reservation_id);
+
+-- 時間範囲検索（月表示等）
+CREATE INDEX CONCURRENTLY idx_reservations_time_range
+ON reservations USING GIST (tstzrange(start_at, end_at));
+```
+
+##### Phase 2: 運用後追加予定（性能監視後）
+```sql
+-- 空き時間検索用（複数人日程調整）
+-- ※実際の使用パターン確認後に追加
+CREATE INDEX CONCURRENTLY idx_multi_user_availability
+ON reservation_participants (user_id, reservation_id)
+WHERE status IN ('ACCEPTED', 'NEEDS_ACTION');
+
+-- リソース空き状況検索用
+-- ※会議室予約頻度確認後に追加  
+CREATE INDEX CONCURRENTLY idx_resource_availability
+ON reservation_resources (resource_id)
+INCLUDE (reservation_id);
+```
+
+#### 4.2.2 性能監視・チューニング運用
+
+##### 監視対象メトリクス
+```sql
+-- 遅いクエリの特定
+SELECT query, mean_exec_time, calls, total_exec_time
+FROM pg_stat_statements 
+WHERE mean_exec_time > 100 -- 100ms超のクエリ
+ORDER BY mean_exec_time DESC;
+
+-- インデックス使用状況
+SELECT schemaname, tablename, indexname, 
+       idx_tup_read, idx_tup_fetch, idx_scan
+FROM pg_stat_user_indexes
+WHERE idx_scan < 100; -- 使用頻度の低いインデックス
+```
+
+##### チューニング手順
+1. **週次レポート**: 遅いクエリと未使用インデックスを特定
+2. **月次レビュー**: 実際の使用パターンに基づくインデックス追加・削除
+3. **四半期最適化**: パーティション戦略の見直し
+
+**インデックス追加支援:**
+- 性能監視結果に基づく自動インデックス提案
+- 無停止でのインデックス追加（CONCURRENTLY）
+- インデックス名の自動生成とネーミング規則統一
+
+### 4.3 ER図 (Entity Relationship Diagram)
 
 ```mermaid
 erDiagram
