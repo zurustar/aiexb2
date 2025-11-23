@@ -217,6 +217,146 @@ graph TD
 *   **バージョニング:** URLパスにバージョンを含める (例: `/api/v1/events`)。
 *   **エラーハンドリング:** HTTPステータスコード (2xx, 4xx, 5xx) と、詳細エラーメッセージを含むJSONレスポンスを返す。
 
+### 5.3 API/DTO インターフェース仕様
+#### 5.3.1 エンドポイント一覧
+| グループ | メソッド | パス | 主な機能 | 備考 |
+| :--- | :--- | :--- | :--- | :--- |
+| 認証 | POST | `/api/v1/auth/login` | SSO/OIDC 後のトークン交換 | IdP コールバックで利用 |
+| 認証 | POST | `/api/v1/auth/refresh` | リフレッシュトークンでアクセストークン再発行 | トークンローテーション対応 |
+| ユーザー | GET | `/api/v1/users/me` | ログインユーザー情報取得 | 権限ロールを含む |
+| 予定 | GET | `/api/v1/events` | 自身が閲覧可能な予定一覧取得 | クエリで期間・リソース指定 |
+| 予定 | POST | `/api/v1/events` | 予定作成 | 重複チェック付き |
+| 予定 | GET | `/api/v1/events/{eventId}` | 予定詳細取得 | 参加者・リソースを含む |
+| 予定 | PATCH | `/api/v1/events/{eventId}` | 予定更新 | RRULE変更時は再展開 |
+| 予定 | DELETE | `/api/v1/events/{eventId}` | 予定キャンセル | キャンセルポリシー判定 |
+| リソース | GET | `/api/v1/resources` | 会議室/備品検索 | 収容人数・設備でフィルタ |
+| 承認 | POST | `/api/v1/events/{eventId}/approvals` | 承認/却下アクション | コメント必須 |
+| 通知 | POST | `/api/v1/events/{eventId}/notifications` | 通知再送要求 | 冪等キー必須 |
+
+* **共通仕様**
+    - リクエストヘッダー: `Authorization: Bearer <JWT>`, `X-Request-Id`（トレース用）、`Content-Type: application/json`。
+    - ページネーション: `limit`（1〜200、デフォルト50）、`cursor` をクエリに指定。レスポンスは `nextCursor` を返却。
+    - 並び順: `sort` クエリ（`startAt asc|desc`）。
+    - 部分項目取得: `fields` クエリで返却カラムを制限（例: `fields=title,startAt,endAt`）。
+
+#### 5.3.2 リクエスト/レスポンス例（抜粋）
+* **POST `/api/v1/events` (予定作成)**
+    - リクエスト
+    ```json
+    {
+      "title": "プロジェクト定例",
+      "startAt": "2025-12-01T10:00:00Z",
+      "endAt": "2025-12-01T11:00:00Z",
+      "timezone": "Asia/Tokyo",
+      "resources": [
+        { "resourceId": "room-101", "required": true }
+      ],
+      "participants": [
+        { "userId": "u-123", "role": "organizer" },
+        { "userId": "u-456", "role": "attendee" }
+      ],
+      "recurrence": {
+        "rrule": "FREQ=WEEKLY;COUNT=4",
+        "until": null
+      },
+      "allowProxy": true,
+      "notes": "アジェンダ共有予定"
+    }
+    ```
+    - レスポンス
+    ```json
+    {
+      "eventId": "evt-9001",
+      "conflict": false,
+      "approvalStatus": "Pending",
+      "createdAt": "2025-11-24T02:30:00Z"
+    }
+    ```
+
+* **GET `/api/v1/events` (予定一覧) 例**
+    ```json
+    {
+      "items": [
+        {
+          "eventId": "evt-9001",
+          "title": "プロジェクト定例",
+          "startAt": "2025-12-01T10:00:00Z",
+          "endAt": "2025-12-01T11:00:00Z",
+          "isPrivate": false,
+          "resources": [
+            { "resourceId": "room-101", "name": "A会議室" }
+          ]
+        }
+      ],
+      "nextCursor": null
+    }
+    ```
+
+* **GET `/api/v1/events/{eventId}` (予定詳細) 例**
+    ```json
+    {
+      "eventId": "evt-9001",
+      "title": "プロジェクト定例",
+      "startAt": "2025-12-01T10:00:00Z",
+      "endAt": "2025-12-01T11:00:00Z",
+      "timezone": "Asia/Tokyo",
+      "isPrivate": false,
+      "approvalStatus": "Pending",
+      "resources": [
+        { "resourceId": "room-101", "name": "A会議室", "required": true }
+      ],
+      "participants": [
+        { "userId": "u-123", "role": "organizer", "status": "Accepted" },
+        { "userId": "u-456", "role": "attendee", "status": "NeedsAction" }
+      ],
+      "recurrence": {
+        "rrule": "FREQ=WEEKLY;COUNT=4",
+        "until": null
+      },
+      "allowProxy": true,
+      "notes": "アジェンダ共有予定",
+      "conflict": false,
+      "updatedAt": "2025-11-24T02:30:00Z"
+    }
+    ```
+
+#### 5.3.3 バリデーションとエラーコード
+* **主なバリデーション**
+    - `startAt < endAt`、1件あたり最大12時間。
+    - `title` は必須・最大200文字、制御文字禁止。
+    - `participants` 最低1名、`organizer` が必須。代理作成時は委任期間内かチェック。
+    - `resources` は施設の営業時間と重複を判定し、同一時間帯の二重予約は `409 Conflict`。
+    - `recurrence.rrule` は RFC 5545 に準拠し、`COUNT`/`UNTIL` いずれか必須、展開上限は200インスタンス。
+    - タイムゾーンは IANA 名称のみ許容。過去時刻の新規作成は禁止。
+
+* **エラーコード方針**
+    | HTTP | code | 説明 |
+    | :--- | :--- | :--- |
+    | 400 | `VALIDATION_ERROR` | スキーマ違反・フォーマット不正。`errors[]` にフィールド別メッセージを含める。 |
+    | 401 | `UNAUTHORIZED` | トークン未設定・期限切れ。 |
+    | 403 | `FORBIDDEN` | RBAC で拒否、代理権限外。 |
+    | 404 | `NOT_FOUND` | 存在しない/非公開リソースへのアクセス。 |
+    | 409 | `CONFLICT` | 二重予約・承認状態不整合。レスポンスに `conflictDetails` を含める。 |
+    | 429 | `RATE_LIMITED` | ユーザー/組織ごとのレート制限超過。リトライヘッダ付与。 |
+    | 500 | `INTERNAL_ERROR` | サーバー内部エラー。トレースIDを返却。 |
+
+    - **エラーレスポンス例**
+    ```json
+    {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid request payload",
+      "errors": [
+        { "field": "startAt", "message": "must be before endAt" }
+      ],
+      "traceId": "req-12345"
+    }
+    ```
+
+#### 5.3.4 型・スキーマ共有方針
+*   OpenAPI 3.1 の YAML を単一ソースとし、バックエンドはコードジェネレーターでスタブ/DTOを生成する。
+*   フロントエンドは OpenAPI から TypeScript 型（Zod/TypeBox スキーマ併用）を自動生成し、入力フォームや API クライアントのバリデーションを同一スキーマで実施する。
+*   CI で OpenAPI 定義のスキーマ差分チェックを行い、破壊的変更はリリースノートとクライアントビルドを同時更新する運用とする。
+
 ## 6. インフラ・セキュリティ設計
 
 ### 6.1 ネットワーク構成
