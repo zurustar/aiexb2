@@ -50,3 +50,61 @@ The general flow of documentation dependency is as follows:
 3.  `docs/ieee830.md` (Derives from Requirements & Use Cases)
 4.  `docs/basic_design.md` (Derives from SRS)
 5.  `docs/detailed/*.md` (Derives from Basic Design)
+
+## Task Management Rules
+
+### Rule 4: Task Status Tracking
+All implementation work **MUST** be tracked in `docs/tasks.md`. You are responsible for updating task status before and after each work session.
+
+**Task Status Indicators:**
+- `[ ]` - Not started
+- `[/]` - In progress (include assignee name)
+- `[x]` - Completed
+- `[R]` - Under review / Review requested
+- `⚠️` - Requires individual review (critical tasks)
+
+**Mandatory Update Points:**
+
+1. **Before Starting Work:**
+   - Change task status from `[ ]` to `[/]`
+   - Add assignee name (e.g., `[/] AI Assistant - 2025-11-23`)
+   - Update the "最終更新" (Last Updated) timestamp at the top of the file
+
+2. **After Completing Work:**
+   - Change task status from `[/]` to `[x]` or `[R]` (if review needed)
+   - Update the "最終更新" timestamp
+   - If the task has `⚠️` marker, change status to `[R]` for human review
+
+3. **When Requesting Review:**
+   - Change task status to `[R]`
+   - Use `notify_user` tool to request review
+   - Include the task number in the review request
+
+**Example Workflow:**
+```markdown
+# Before starting task 2.1
+- [ ] 2.1 ユーザードメイン
+
+# When starting work
+- [/] 2.1 ユーザードメイン (AI Assistant - 2025-11-23)
+
+# After completing implementation
+- [x] 2.1 ユーザードメイン
+
+# For critical tasks requiring review
+- [R] 2.5 予約ドメイン ⚠️ (AI Assistant - 2025-11-23)
+```
+
+**Important Notes:**
+- **NEVER skip task updates** - This is critical for project continuity
+- Update tasks.md **in the same commit** as the implementation
+- If you're unsure which task you're working on, check `docs/implementation_plan.md`
+- Always check dependencies before starting a task
+- If a task is blocked by dependencies, note it in the task file
+
+### Rule 5: Phase Completion Checklist
+When completing a Phase:
+1. Ensure all tasks in the Phase are marked `[x]` or `[R]`
+2. Update the Phase checkpoint task status
+3. Request human review via `notify_user` with paths to all completed files
+4. Do not proceed to the next Phase until the current Phase is reviewed and approved
