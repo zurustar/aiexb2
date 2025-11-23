@@ -24,7 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
   auth,
 }) => {
-  const authState = auth ?? useAuth();
+  const defaultAuth = useAuth();
+  const authState = auth ?? defaultAuth;
   const userName = authState.isAuthenticated ? authState.user?.name ?? "ユーザー" : "ゲスト";
   const roleLabel = authState.user?.role ? `Role: ${authState.user.role}` : "";
 
@@ -53,9 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
             key={item.href}
             href={item.href}
             aria-current={item.active ? "page" : undefined}
-            className={`text-sm font-medium transition hover:text-blue-600 ${
-              item.active ? "text-blue-700 underline" : "text-gray-700"
-            }`}
+            className={`text-sm font-medium transition hover:text-blue-600 ${item.active ? "text-blue-700 underline" : "text-gray-700"
+              }`}
           >
             {item.label}
           </a>

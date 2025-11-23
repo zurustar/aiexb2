@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react-hooks";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { ApiClient } from "@/lib/api-client";
 import { useEvents } from "./useEvents";
@@ -35,8 +35,8 @@ describe("useEvents", () => {
       })
     );
 
-    const { result, waitForNextUpdate } = renderHook(() => useEvents({ apiClient, autoLoad: true }));
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useEvents({ apiClient, autoLoad: true }));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
 
     expect(result.current.events).toHaveLength(1);
     expect(result.current.events[0].id).toBe("res-1");
@@ -51,8 +51,8 @@ describe("useEvents", () => {
       })
     );
 
-    const { result, waitForNextUpdate } = renderHook(() => useEvents({ apiClient, autoLoad: true }));
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useEvents({ apiClient, autoLoad: true }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     // create
     mockFetch.mockResolvedValueOnce(

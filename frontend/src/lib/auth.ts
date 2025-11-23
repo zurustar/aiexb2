@@ -76,6 +76,8 @@ export class AuthManager {
   async logout(): Promise<void> {
     try {
       await this.apiClient.post<null>("/api/v1/auth/logout");
+    } catch (error) {
+      // Ignore logout errors
     } finally {
       this.clearSession();
     }

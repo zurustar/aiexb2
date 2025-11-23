@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react-hooks";
+import { renderHook, act, waitFor } from "@testing-library/react";
 
 import { ApiClient } from "@/lib/api-client";
 import { AuthLoginParams, AuthManager, Session, createMemoryStorage } from "@/lib/auth";
@@ -37,8 +37,8 @@ describe("useAuth", () => {
   it("loads session on mount", async () => {
     storage.setItem("esms.session", JSON.stringify(session));
 
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(authManager));
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useAuth(authManager));
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
 
     expect(result.current.isAuthenticated).toBe(true);
     expect(result.current.user).toEqual(user);
@@ -52,8 +52,8 @@ describe("useAuth", () => {
       })
     );
 
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(authManager));
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useAuth(authManager));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
       await result.current.login({ username: "user", password: "pass" } satisfies AuthLoginParams);
@@ -68,8 +68,8 @@ describe("useAuth", () => {
     storage.setItem("esms.session", JSON.stringify(session));
     mockFetch.mockResolvedValue(new Response(null, { status: 200 }));
 
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(authManager));
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useAuth(authManager));
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
 
     await act(async () => {
       await result.current.logout();
@@ -82,8 +82,8 @@ describe("useAuth", () => {
 
   it("exposes role helper", async () => {
     storage.setItem("esms.session", JSON.stringify(session));
-    const { result, waitForNextUpdate } = renderHook(() => useAuth(authManager));
-    await waitForNextUpdate();
+    const { result } = renderHook(() => useAuth(authManager));
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
 
     expect(result.current.hasRole("ADMIN")).toBe(true);
     expect(result.current.hasRole(["GENERAL", "ADMIN"])).toBe(true);

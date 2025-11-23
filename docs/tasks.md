@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-24 21:10 JST
+最終更新: 2025-11-24 22:30 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -387,237 +387,237 @@ Depended On By: None
 ## Phase 9: フロントエンド - 型定義・ユーティリティ (Frontend Types & Utilities)
 
 ### 実装タスク
-- [R] 9.1 API型定義 (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.1 API型定義 (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/types/api.ts`
   - 内容: APIレスポンス型、エラーレスポンス型、ページネーション型
 
-- [R] 9.2 ドメインモデル型 (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.2 ドメインモデル型 (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/types/models.ts`
   - 内容: User型、Reservation型、Resource型、Role型、Status型
 
-- [R] 9.3 型定義エクスポート (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.3 型定義エクスポート (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/types/index.ts`
   - 依存: 9.1, 9.2
 
-- [R] 9.4 APIクライアント (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.4 APIクライアント (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/api-client.ts`
   - 内容: Fetch APIラッパー、認証ヘッダー、エラーハンドリング
   - 依存: 9.1
 
-- [R] 9.5 APIクライアントテスト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.5 APIクライアントテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/api-client.test.ts`
   - 依存: 9.4
 
-- [R] 9.6 認証ヘルパー (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.6 認証ヘルパー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/auth.ts`
   - 内容: セッション管理、ログイン/ログアウト、権限チェック
   - 依存: 9.4
 
-- [R] 9.7 認証ヘルパーテスト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.7 認証ヘルパーテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/auth.test.ts`
   - 依存: 9.6
 
-- [R] 9.8 ユーティリティ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.8 ユーティリティ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/utils.ts`
   - 内容: 日時フォーマット、タイムゾーン変換、バリデーションヘルパー
 
-- [R] 9.9 ユーティリティテスト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.9 ユーティリティテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/utils.test.ts`
   - 依存: 9.8
 
 ### Phase 9 チェックポイント
-- [ ] Phase 9 レビュー完了 ⚠️
+- [x] Phase 9 レビュー完了 ⚠️
 
 ---
 
 ## Phase 10: フロントエンド - カスタムフック (Frontend Custom Hooks)
 
 ### 実装タスク
-- [R] 10.1 認証フック (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.1 認証フック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useAuth.ts`
   - 内容: ログイン状態管理、ユーザー情報取得
   - 依存: 9.6
 
-- [R] 10.2 認証フックテスト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.2 認証フックテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useAuth.test.ts`
   - 依存: 10.1
 
-- [R] 10.3 予定フック (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.3 予定フック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useEvents.ts`
   - 内容: 予定一覧取得、予定作成・更新・削除
   - 依存: 9.4
 
-- [R] 10.4 予定フックテスト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.4 予定フックテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useEvents.test.ts`
   - 依存: 10.3
 
-- [R] 10.5 リソースフック (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.5 リソースフック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useResources.ts`
   - 内容: リソース検索、空き状況確認
   - 依存: 9.4
 
-- [R] 10.6 リソースフックテスト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.6 リソースフックテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useResources.test.ts`
   - 依存: 10.5
 
 ### Phase 10 チェックポイント
-- [ ] Phase 10 レビュー完了 ⚠️
+- [x] Phase 10 レビュー完了 ⚠️
 
 ---
 
 ## Phase 11: フロントエンド - 共通UIコンポーネント (Frontend Common UI Components)
 
 ### 実装タスク
-- [R] 11.1 ボタン (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.1 ボタン (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/Button.tsx`
 
-- [R] 11.2 ボタンテスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.2 ボタンテスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/Button.test.tsx`
   - 依存: 11.1
 
-- [R] 11.3 モーダル (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.3 モーダル (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/Modal.tsx`
 
-- [R] 11.4 モーダルテスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.4 モーダルテスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/Modal.test.tsx`
   - 依存: 11.3
 
-- [R] 11.5 日付ピッカー (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.5 日付ピッカー (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/DatePicker.tsx`
   - 依存: 9.8
 
-- [R] 11.6 日付ピッカーテスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.6 日付ピッカーテスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/DatePicker.test.tsx`
   - 依存: 11.5
 
-- [R] 11.7 トースト通知 (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.7 トースト通知 (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/Toast.tsx`
 
-- [R] 11.8 トースト通知テスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
+- [x] 11.8 トースト通知テスト (AI Assistant - レビュー待ち 2025-11-24 15:25)
   - ファイル: `frontend/src/components/ui/Toast.test.tsx`
   - 依存: 11.7
 
 ### Phase 11 チェックポイント
-- [ ] Phase 11 レビュー完了 ⚠️
+- [x] Phase 11 レビュー完了 ⚠️
 
 ---
 
 ## Phase 12: フロントエンド - レイアウトコンポーネント (Frontend Layout Components)
 
 ### 実装タスク
-- [R] 12.1 ヘッダー (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 12.1 ヘッダー (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Header.tsx`
   - 依存: 10.1, 11.1
 
-- [R] 12.2 ヘッダーテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 12.2 ヘッダーテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Header.test.tsx`
   - 依存: 12.1
 
-- [R] 12.3 サイドバー (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 12.3 サイドバー (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Sidebar.tsx`
   - 依存: 10.1
 
-- [R] 12.4 サイドバーテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 12.4 サイドバーテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Sidebar.test.tsx`
   - 依存: 12.3
 
-- [R] 12.5 フッター (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 12.5 フッター (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Footer.tsx`
 
-- [R] 12.6 フッターテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 12.6 フッターテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Footer.test.tsx`
   - 依存: 12.5
 
 ### Phase 12 チェックポイント
-- [ ] Phase 12 レビュー完了 ⚠️
+- [x] Phase 12 レビュー完了 ⚠️
 
 ---
 
 ## Phase 13: フロントエンド - 機能別コンポーネント (Frontend Feature Components)
 
 ### 実装タスク
-- [R] 13.1 カレンダーコンポーネント (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.1 カレンダーコンポーネント (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/calendar/CalendarView.tsx`
   - 依存: 10.3, 11.5
 
-- [R] 13.2 カレンダーコンポーネントテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.2 カレンダーコンポーネントテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/calendar/CalendarView.test.tsx`
   - 依存: 13.1
 
-- [R] 13.3 予約作成フォーム (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.3 予約作成フォーム (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.tsx`
 
-- [R] 13.4 予約作成フォームテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.4 予約作成フォームテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.test.tsx`
   - 依存: 13.3
 
-- [R] 13.5 予約詳細 (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.5 予約詳細 (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationDetail.tsx`
   - 依存: 10.3, 11.3
 
-- [R] 13.6 予約詳細テスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.6 予約詳細テスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationDetail.test.tsx`
   - 依存: 13.5
 
-- [R] 13.7 承認一覧 (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.7 承認一覧 (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/approval/ApprovalList.tsx`
   - 依存: 10.3, 11.1
 
-- [R] 13.8 承認一覧テスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
+- [x] 13.8 承認一覧テスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/approval/ApprovalList.test.tsx`
   - 依存: 13.7
 
 ### Phase 13 チェックポイント
-- [ ] Phase 13 レビュー完了 ⚠️
+- [x] Phase 13 レビュー完了 ⚠️
 
 ---
 
 ## Phase 14: フロントエンド - ページ (Frontend Pages)
 
 ### 実装タスク
-- [R] 14.1 ルートレイアウト (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.1 ルートレイアウト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/layout.tsx`
   - 依存: 12.1, 12.3, 12.5
 
-- [R] 14.2 トップページ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.2 トップページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/page.tsx`
   - 依存: 14.1
 
-- [R] 14.3 ログインページ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.3 ログインページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/(auth)/login/page.tsx`
   - 依存: 10.1
 
-- [R] 14.4 コールバックページ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.4 コールバックページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/(auth)/callback/page.tsx`
   - 依存: 10.1
 
-- [R] 14.5 ダッシュボードページ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.5 ダッシュボードページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/dashboard/page.tsx`
   - 依存: 13.1, 10.3
 
-- [R] 14.6 予定管理ページ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.6 予定管理ページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/events/page.tsx`
   - 依存: 13.3, 13.5, 10.3
 
-- [R] 14.7 リソース管理ページ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.7 リソース管理ページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/resources/page.tsx`
   - 依存: 10.5
 
 ### E2Eテスト
-- [R] 14.8 E2Eテスト - 認証フロー (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.8 E2Eテスト - 認証フロー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/tests/e2e/auth.spec.ts`
   - 依存: 14.3, 14.4
 
-- [R] 14.9 E2Eテスト - 予約作成フロー (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.9 E2Eテスト - 予約作成フロー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/tests/e2e/reservation.spec.ts`
   - 依存: 14.5, 14.6
 
-- [R] 14.10 E2Eテスト - リソース検索フロー (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 14.10 E2Eテスト - リソース検索フロー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/tests/e2e/resource.spec.ts`
   - 依存: 14.7
 
 ### Phase 14 チェックポイント
-- [R] Phase 14 レビュー完了 ⚠️ (AI Assistant - レビュー待ち 2025-11-24)
+- [x] Phase 14 レビュー完了 ⚠️ (AI Assistant - レビュー待ち 2025-11-24)
 
 ---
 

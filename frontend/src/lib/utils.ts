@@ -23,6 +23,7 @@ export const toTimeZone = (input: string | Date, timeZone: string): Date => {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    hour12: false,
   })
     .formatToParts(date)
     .reduce<Record<string, string>>((acc, part) => {
@@ -31,18 +32,8 @@ export const toTimeZone = (input: string | Date, timeZone: string): Date => {
     }, {});
 
   return new Date(
-    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.000${offsetFromTimeZone(date, timeZone)}`
+    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.000`
   );
-};
-
-const offsetFromTimeZone = (date: Date, timeZone: string): string => {
-  const localDate = new Date(date.toLocaleString("en-US", { timeZone }));
-  const diff = (localDate.getTime() - date.getTime()) / 60000;
-  const sign = diff >= 0 ? "+" : "-";
-  const abs = Math.abs(diff);
-  const hours = String(Math.floor(abs / 60)).padStart(2, "0");
-  const minutes = String(abs % 60).padStart(2, "0");
-  return `${sign}${hours}:${minutes}`;
 };
 
 export const validateEmail = (email: string): boolean => {

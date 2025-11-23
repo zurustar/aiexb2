@@ -4,11 +4,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ReservationForm } from "./ReservationForm";
 import { Reservation } from "@/types/models";
 
-type StubEventsHook = () => {
-  createEvent: jest.Mock;
-  isLoading: boolean;
-  error: string | null;
-};
+import { UseEventsResult } from "@/hooks/useEvents";
+
+type StubEventsHook = () => UseEventsResult;
 
 const sampleReservation: Reservation = {
   id: "r1",
@@ -46,8 +44,8 @@ describe("ReservationForm", () => {
 
     fireEvent.change(screen.getByLabelText("タイトル"), { target: { value: "ミーティング" } });
     fireEvent.change(screen.getByLabelText("説明"), { target: { value: "仕様調整" } });
-    fireEvent.change(screen.getByLabelText("開始日時"), { target: { value: "2025-11-24T09:00" } });
-    fireEvent.change(screen.getByLabelText("終了日時"), { target: { value: "2025-11-24T10:00" } });
+    fireEvent.change(screen.getByTestId("startAt"), { target: { value: "2025-11-24T09:00" } });
+    fireEvent.change(screen.getByTestId("endAt"), { target: { value: "2025-11-24T10:00" } });
     fireEvent.change(screen.getByLabelText("タイムゾーン"), { target: { value: "Asia/Tokyo" } });
     fireEvent.click(screen.getByLabelText("非公開予約"));
 
@@ -72,8 +70,8 @@ describe("ReservationForm", () => {
     render(<ReservationForm useEventsHook={createStubHook(createEvent)} />);
 
     fireEvent.change(screen.getByLabelText("タイトル"), { target: { value: "テスト" } });
-    fireEvent.change(screen.getByLabelText("開始日時"), { target: { value: "2025-11-24T10:00" } });
-    fireEvent.change(screen.getByLabelText("終了日時"), { target: { value: "2025-11-24T09:00" } });
+    fireEvent.change(screen.getByTestId("startAt"), { target: { value: "2025-11-24T10:00" } });
+    fireEvent.change(screen.getByTestId("endAt"), { target: { value: "2025-11-24T09:00" } });
 
     fireEvent.submit(screen.getByLabelText("予約フォーム"));
 

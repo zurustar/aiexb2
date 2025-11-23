@@ -7,4 +7,8 @@ module.exports = {
   },
   testMatch: ["**/?(*.)+(spec|test).[tj]s?(x)"],
   collectCoverageFrom: ["src/**/*.{ts,tsx}"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  transform: {
+    "^.+\\.tsx?$": ["ts-jest", { tsconfig: { jsx: "react-jsx" } }],
+  },
 };

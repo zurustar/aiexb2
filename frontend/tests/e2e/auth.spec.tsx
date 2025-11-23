@@ -11,7 +11,7 @@ jest.mock("next/navigation", () => ({
   useSearchParams: () => useSearchParamsMock(),
 }));
 
-type PartialAuth = Pick<UseAuthResult, "login" | "logout" | "hasRole" | "refresh"> & {
+type PartialAuth = Partial<Pick<UseAuthResult, "login" | "logout" | "hasRole" | "refresh">> & {
   user?: UseAuthResult["user"];
   session?: UseAuthResult["session"];
   isAuthenticated?: boolean;
@@ -46,7 +46,7 @@ describe("E2E: 認証フロー", () => {
 
     fireEvent.change(screen.getByLabelText("ユーザー名"), { target: { value: "demo" } });
     fireEvent.change(screen.getByLabelText("パスワード"), { target: { value: "secret" } });
-    fireEvent.click(screen.getByText("サインイン"));
+    fireEvent.click(screen.getByRole("button", { name: "サインイン" }));
 
     await waitFor(() => expect(login).toHaveBeenCalledWith({ username: "demo", password: "secret" }));
     expect(screen.getByText(/ログインに成功/)).toBeInTheDocument();

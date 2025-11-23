@@ -20,7 +20,8 @@ export type SidebarProps = {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({ items, collapsed = false, onItemSelect, auth }) => {
-  const authState = auth ?? useAuth();
+  const defaultAuth = useAuth();
+  const authState = auth ?? defaultAuth;
 
   const isAllowed = (item: SidebarItem): boolean => {
     if (!item.roles || item.roles.length === 0) return true;
@@ -40,9 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ items, collapsed = false, onIt
           key={item.href}
           href={item.href}
           onClick={() => onItemSelect?.(item)}
-          className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white hover:shadow ${
-            item.active ? "bg-white text-blue-700 shadow" : "text-gray-800"
-          }`}
+          className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white hover:shadow ${item.active ? "bg-white text-blue-700 shadow" : "text-gray-800"
+            }`}
         >
           <span className="flex items-center gap-2">
             {item.icon}

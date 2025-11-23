@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react-hooks";
+import { act, renderHook } from "@testing-library/react";
 
 import { ApiClient } from "@/lib/api-client";
 import { useResources } from "./useResources";

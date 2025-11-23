@@ -21,7 +21,11 @@ describe("Sidebar", () => {
 
     render(
       <Sidebar
-        items={[...items, { label: "承認", href: "/approvals", badge: 3, roles: ["MANAGER"] }]}
+        items={[
+          ...items,
+          { label: "承認", href: "/approvals", badge: 3, roles: ["MANAGER"] },
+          { label: "通知", href: "/notifications", badge: 5 },
+        ]}
         auth={auth}
       />
     );
@@ -29,7 +33,7 @@ describe("Sidebar", () => {
     expect(screen.getByText("ダッシュボード")).toBeInTheDocument();
     expect(screen.getByText("予約")).toBeInTheDocument();
     expect(screen.queryByText("承認")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("badge")).toHaveTextContent("3");
+    expect(screen.getByLabelText("badge")).toHaveTextContent("5");
   });
 
   it("invokes selection handler when item is clicked", () => {

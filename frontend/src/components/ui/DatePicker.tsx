@@ -31,6 +31,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           ref={ref}
           id={name}
           name={name}
+          data-testid={name}
           type="datetime-local"
           value={value}
           onChange={handleChange}
@@ -38,9 +39,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           max={max}
           required={required}
           disabled={disabled}
-          className={`rounded-md border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 ${
-            error ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`rounded-md border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 ${error ? "border-red-500" : "border-gray-300"
+            }`}
         />
         {helperText && !error && <p className="text-xs text-gray-500">{helperText}</p>}
         {error && <p className="text-xs text-red-600" role="alert">{error}</p>}
