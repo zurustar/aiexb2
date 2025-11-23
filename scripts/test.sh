@@ -64,7 +64,7 @@ fi
 echo "==> Running frontend tests with coverage"
 $COMPOSE_CMD run --rm frontend sh -c "cd /app && npm test -- --coverage --runInBand"
 
-FRONTEND_RATE=$(python - <<'PY'
+FRONTEND_RATE=$(python3 - <<'PY'
 import json
 import pathlib
 summary_path = pathlib.Path("frontend/coverage/coverage-summary.json")
@@ -91,7 +91,7 @@ cat "$SUMMARY_REPORT"
 check_threshold() {
   local rate=$1
   local target=$2
-  python - <<'PY'
+  python3 - <<'PY'
 import os, sys
 rate = os.environ.get('RATE')
 target = float(os.environ.get('TARGET', '0'))
