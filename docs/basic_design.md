@@ -166,13 +166,70 @@ SRSの機能要件に基づき、以下の機能を Phase 1 で実装する。
 ### 3.2 重要ロジック設計
 
 #### 3.2.1 排他制御 (Conflict Resolution)
-*   **戦略:** 楽観的ロックではなく、データベースの制約またはトランザクション内でのロック（`SELECT FOR UPDATE` 等）を用いた悲観的ロックに近いアプローチを採用し、物理的なダブルブッキングを確実に防ぐ。
-*   **フロー:**
-    1.  トランザクション開始
-    2.  対象リソース・時間帯の既存予約をロック付きで検索
-    3.  重複があればロールバック＆エラー返却
-    4.  重複がなければ予約レコード挿入
-    5.  コミット
+
+##### 基本戦略
+**ダブルブッキング絶対回避**を最優先とし、悲観的ロックによる厳密な排他制御を実装する。
+
+##### ロック粒度設計
+- **ロック単位**: リソースID × 時間範囲の組み合わせ
+- **ロック対象**: `ReservationResources` テーブルの該当レコード
+- **ロック順序**: リソースIDの昇順でロック取得（デッドロック回避）
+
+##### 詳細実装フロー
+```sql
+-- 1. トランザクション開始（分離レベル: SERIALIZABLE）
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+-- 2. 対象リソースを昇順でロック取得
+SELECT resource_id FROM unnest($resource_ids) AS r(resource_id) 
+ORDER BY resource_id FOR UPDATE;
+
+-- 3. 時間重複チェック（既存予約との競合確認）
+SELECT rr.resource_id, ri.start_at, ri.end_at 
+FROM reservation_resources rr
+JOIN reservation_instances ri ON rr.reservation_instance_id = ri.id
+WHERE rr.resource_id = ANY($resource_ids)
+  AND ri.start_at < $new_end_at 
+  AND ri.end_at > $new_start_at
+  AND ri.status = 'CONFIRMED'
+FOR UPDATE;
+
+-- 4. 競合判定
+IF found_conflicts THEN
+    ROLLBACK;
+    RETURN conflict_error_with_alternatives;
+END IF;
+
+-- 5. 予約レコード挿入
+INSERT INTO reservations (...) VALUES (...);
+INSERT INTO reservation_instances (...) VALUES (...);
+INSERT INTO reservation_resources (...) VALUES (...);
+
+-- 6. コミット
+COMMIT;
+```
+
+##### エラーハンドリング・リトライ戦略
+- **タイムアウト**: ロック取得タイムアウト 5秒
+- **リトライ**: 最大3回、指数バックオフ（100ms, 200ms, 400ms）
+- **デッドロック検知**: PostgreSQLの自動デッドロック検知に依存
+- **競合時対応**: 代替リソース・時間帯の自動提案
+
+##### パフォーマンス最適化
+- **インデックス設計**:
+  ```sql
+  -- 時間範囲検索用のGiSTインデックス
+  CREATE INDEX idx_reservation_time_range 
+  ON reservation_instances USING GIST (
+    tstzrange(start_at, end_at), resource_id
+  );
+  
+  -- リソース別検索用
+  CREATE INDEX idx_reservation_resources_lookup
+  ON reservation_resources (resource_id, reservation_instance_id);
+  ```
+- **ロック保持時間**: 最大500ms以内でトランザクション完了
+- **接続プール**: デッドロック発生時の即座な接続解放
 
 #### 3.2.2 繰り返し予定の展開
 *   **戦略:** 繰り返しルール（RRULE）を保持しつつ、検索性能向上のため、直近（例：3年分）の予定インスタンスを実データとして展開する、または検索時に動的に展開するハイブリッド方式を検討する。
