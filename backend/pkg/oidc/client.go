@@ -126,6 +126,10 @@ func (c *Client) GetUserInfo(ctx context.Context, idToken *oidc.IDToken) (*UserI
 }
 
 // ValidateToken はアクセストークンを検証します（簡易実装）
+// TODO: 本番環境では以下の実装が必要:
+// - JWTの場合: 署名検証、有効期限検証、issuer/audience検証
+// - Opaqueトークンの場合: トークンイントロスペクションエンドポイントへの問い合わせ
+// 現状は存在チェックのみで、セキュリティ上の検証は不十分です。
 func (c *Client) ValidateToken(ctx context.Context, accessToken string) error {
 	// 実際の実装では、トークンイントロスペクションエンドポイントを使用するか、
 	// JWTの場合は署名検証を行う
@@ -152,6 +156,10 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*oauth2
 }
 
 // TokenClaims はトークンのクレームを表します
+// TODO: 本番環境では以下のクレームの検証も必要:
+// - nonce: リプレイアタック防止（Authorization Code Flowで必須）
+// - at_hash: アクセストークンのハッシュ検証（Implicit Flowで必須）
+// - azp: Authorized party（複数audienceの場合に必須）
 type TokenClaims struct {
 	Issuer    string          `json:"iss"`
 	Subject   string          `json:"sub"`
@@ -160,6 +168,10 @@ type TokenClaims struct {
 	IssuedAt  int64           `json:"iat"` // Unix timestamp
 	Email     string          `json:"email"`
 	Name      string          `json:"name"`
+	// オプショナルなクレーム（将来の拡張用）
+	Nonce  string `json:"nonce,omitempty"`   // リプレイアタック防止
+	AtHash string `json:"at_hash,omitempty"` // アクセストークンハッシュ
+	Azp    string `json:"azp,omitempty"`     // Authorized party
 }
 
 // audienceWrapper はaudienceクレームの柔軟な型対応
@@ -217,6 +229,10 @@ func (c *Client) ParseIDTokenClaims(ctx context.Context, rawIDToken string) (*To
 }
 
 // validateClaims はクレームの追加検証を行います
+// TODO: 本番環境では以下の検証も追加が必要:
+// - nonce検証（セッションと照合）
+// - at_hash検証（アクセストークンとの整合性）
+// - azp検証（複数audienceの場合）
 func (c *Client) validateClaims(claims *TokenClaims) error {
 	if c.config == nil {
 		return ErrInvalidConfig
@@ -238,6 +254,16 @@ func (c *Client) validateClaims(claims *TokenClaims) error {
 	if now.After(expTime.Add(ClockSkew)) {
 		return fmt.Errorf("%w: token expired at %v (now: %v)", ErrTokenExpired, expTime, now)
 	}
+
+	// TODO: nonce検証
+	// if expectedNonce != "" && claims.Nonce != expectedNonce {
+	//     return ErrInvalidNonce
+	// }
+
+	// TODO: at_hash検証
+	// if accessToken != "" && !verifyAtHash(claims.AtHash, accessToken) {
+	//     return ErrInvalidAtHash
+	// }
 
 	return nil
 }
