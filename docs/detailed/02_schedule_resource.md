@@ -154,17 +154,53 @@ stateDiagram-v2
     -   ユーザーのペナルティスコアを再計算し、閾値を超えた場合は管理者通知または制限フラグを更新。
 
 ### 6.3 スコア活用箇所 (API/UI連携)
--   **ユーザープロファイルAPI:** `GET /users/{id}` で `penalty_score` と `penalty_score_expire_at` を返却し、管理画面で閲覧可能にする。
--   **予約作成API:** `POST /reservations` のリクエスト処理時に `penalty_score >= 5` の場合は `requires_manager_approval=true` を強制セットし、レスポンスにも同フラグを含める。
+-   **ユーザープロファイルAPI:** `GET /api/v1/users/me` で `penaltyScore` と `penaltyScoreExpireAt` を返却し、管理画面で閲覧可能にする（管理者は将来的に `/api/v1/users/{userId}` で閲覧）。
+-   **予約作成API:** `POST /api/v1/events` のリクエスト処理時に `penaltyScore >= 5` の場合は `requiresManagerApproval=true` を強制セットし、レスポンスにも同フラグを含める。
 -   **UI表示:** 予約フォームにスコアが閾値に近い場合（例: 4以上）、「遅刻・キャンセルが多いため承認が必要になる可能性があります」といった警告バナーを表示する。
 
-## 7. パフォーマンス・スケーラビリティ設計
+## 7. API/DTO 詳細 (基本設計反映)
+基本設計の 5.3 節に準拠し、スケジュール・リソース系 API の詳細仕様とバリデーションを本詳細設計に反映する。
 
-### 7.1 読み取り負荷分散 (Read Replica Stickiness)
+### 7.1 エンドポイント
+
+| エンドポイント | 用途 | 主なクエリ/ヘッダー | レスポンス概要 |
+| :--- | :--- | :--- | :--- |
+| `GET /api/v1/events` | 指定期間の予定・リソース使用状況の取得 | `startAt`, `endAt`（必須）、`resources[]`, `limit`, `cursor`, `sort`, `fields`。ヘッダーに `Authorization`, `X-Request-Id`。 | `items[]` に予約サマリ、`nextCursor` でページ継続。 |
+| `POST /api/v1/events` | 予定・リソースの作成 | Body は 7.2 参照。`Idempotency-Key` ヘッダーを推奨。 | `eventId`, `conflict`, `approvalStatus`, `createdAt` を返す。 |
+| `GET /api/v1/events/{eventId}` | 予定詳細の取得 | `fields` で返却項目を限定可能。 | 予約・参加者・リソース・RRULE を返す。 |
+| `PATCH /api/v1/events/{eventId}` | 予定更新 | `If-Match: <version>` で楽観ロック。 | 更新後の `approvalStatus` と `updatedAt` を返す。 |
+
+### 7.2 DTO スキーマ（主要項目）
+- **EventCreateRequest**
+    - `title` (string, required, max 200)
+    - `startAt` (string, ISO8601, required)
+    - `endAt` (string, ISO8601, required)
+    - `timezone` (IANA tz, default `Asia/Tokyo`)
+    - `resources[]` (object): `resourceId` (string, required), `required` (bool, default true)
+    - `participants[]` (object): `userId` (string, required), `role` (`organizer|attendee|approver`), `status` (`NeedsAction` 初期)
+    - `recurrence` (object, optional): `rrule` (RFC 5545, required), `until` (ISO8601|null)
+    - `allowProxy` (bool, default false)
+    - `notes` (string, max 2000)
+
+- **EventSummary**
+    - `eventId`, `title`, `startAt`, `endAt`, `isPrivate`, `resources[] { resourceId, name }`, `approvalStatus`, `conflict` (bool)
+
+- **EventDetail**
+    - `EventSummary` に加え、`participants[] { userId, role, status }`, `recurrence`, `allowProxy`, `notes`, `updatedAt`
+
+### 7.3 バリデーション/エラー取り扱い
+- `startAt < endAt` かつ最大12時間。過去時刻の作成は拒否。
+- `recurrence` は `COUNT` または `UNTIL` が必須、展開上限200インスタンス。例外が多い場合は `409 CONFLICT` を返却。
+- リソース重複時は `409 CONFLICT` として `conflictDetails[] { resourceId, startAt, endAt }` をレスポンスに含める。
+- スキーマ違反は `400 VALIDATION_ERROR` とし、`errors[] { field, message }` と `traceId` を返却。
+
+## 8. パフォーマンス・スケーラビリティ設計
+
+### 8.1 読み取り負荷分散 (Read Replica Stickiness)
 *   予約作成・更新直後のデータ不整合を防ぐため、更新操作を行ったユーザーからの読み取りリクエストは、**60秒間** プライマリDBへルーティングする（Sticky Session / Cookie制御）。
 *   それ以外の参照リクエストはリードレプリカへ振り分け、負荷を分散する。
 
-### 7.2 キャッシュ戦略 (Redis)
+### 8.2 キャッシュ戦略 (Redis)
 *   **整合性優先:** 予約枠の空き状況確認など、厳密な整合性が求められる処理はキャッシュをバイパスする。
 *   **参照系キャッシュ:** 予定詳細やカレンダー表示用データはRedisにキャッシュし、TTLは **5〜15分** とする。
 *   **無効化:** 予約更新時に、関連するキャッシュ（ユーザーのカレンダービュー等）を非同期ジョブで無効化する。
