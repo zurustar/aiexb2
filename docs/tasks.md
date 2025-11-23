@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-24 01:10 JST
+最終更新: 2025-11-24 02:30 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -433,30 +433,30 @@ Depended On By: None
 ## Phase 10: フロントエンド - カスタムフック (Frontend Custom Hooks)
 
 ### 実装タスク
-- [ ] 10.1 認証フック
+- [R] 10.1 認証フック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useAuth.ts`
   - 内容: ログイン状態管理、ユーザー情報取得
   - 依存: 9.6
 
-- [ ] 10.2 認証フックテスト
+- [R] 10.2 認証フックテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useAuth.test.ts`
   - 依存: 10.1
 
-- [ ] 10.3 予定フック
+- [R] 10.3 予定フック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useEvents.ts`
   - 内容: 予定一覧取得、予定作成・更新・削除
   - 依存: 9.4
 
-- [ ] 10.4 予定フックテスト
+- [R] 10.4 予定フックテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useEvents.test.ts`
   - 依存: 10.3
 
-- [ ] 10.5 リソースフック
+- [R] 10.5 リソースフック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useResources.ts`
   - 内容: リソース検索、空き状況確認
   - 依存: 9.4
 
-- [ ] 10.6 リソースフックテスト
+- [R] 10.6 リソースフックテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useResources.test.ts`
   - 依存: 10.5
 
