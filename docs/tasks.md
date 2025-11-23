@@ -263,7 +263,7 @@ Depended On By: None
   - 依存: 3.1
   - コメント: GetAuthURLがstateのみでPKCEコードチャレンジやnonceを発行しておらず、アクセストークン検証も実質ノーガードなため、PKCE/nonce付与とイントロスペクション・タイムアウト付きHTTPクライアント対応を検討したいです。
 
-- [R] 6.2 OIDCクライアントテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:50)
+- [x] 6.2 OIDCクライアントテスト (AI Assistant - 完了 2025-11-23 22:45)
   - ファイル: `backend/pkg/oidc/client_test.go`
   - 依存: 6.1
   - コメント: こちらも全てSkipなので、テスト用のスタブOIDCプロバイダ（httptestサーバー）を立ててDiscovery/IDトークン検証/at_hash検証の正負ケースを動かすインテグレーション寄りのテストを用意すると安心です。
