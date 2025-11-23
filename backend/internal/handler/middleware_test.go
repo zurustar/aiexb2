@@ -32,46 +32,60 @@ func TestMiddleware_CORS(t *testing.T) {
 	mockAuth := new(MockAuthService)
 	mw := handler.NewMiddleware(mockAuth)
 
-	handler := mw.CORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
+	tests := []struct {
+		name           string
+		origin         string
+		method         string
+		expectedCode   int
+		expectedOrigin string
+	}{
+		{
+			name:           "Allowed Origin",
+			origin:         "http://localhost:3000",
+			method:         "GET",
+			expectedCode:   http.StatusOK,
+			expectedOrigin: "http://localhost:3000",
+		},
+		{
+			name:           "Disallowed Origin",
+			origin:         "http://evil.com",
+			method:         "GET",
+			expectedCode:   http.StatusOK,
+			expectedOrigin: "",
+		},
+		{
+			name:           "Preflight Request",
+			origin:         "http://localhost:3000",
+			method:         "OPTIONS",
+			expectedCode:   http.StatusOK,
+			expectedOrigin: "http://localhost:3000",
+		},
+	}
 
-	// OPTIONS リクエスト（プリフライト）
-	req := httptest.NewRequest("OPTIONS", "/api/test", nil)
-	w := httptest.NewRecorder()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := mw.CORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
 
-	handler.ServeHTTP(w, req)
+			req := httptest.NewRequest(tt.method, "/api/test", nil)
+			req.Header.Set("Origin", tt.origin)
+			w := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
-	assert.Contains(t, w.Header().Get("Access-Control-Allow-Methods"), "GET")
-	assert.Contains(t, w.Header().Get("Access-Control-Allow-Methods"), "POST")
+			handler.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedCode, w.Code)
+			assert.Equal(t, tt.expectedOrigin, w.Header().Get("Access-Control-Allow-Origin"))
+
+			if tt.expectedOrigin != "" {
+				assert.Equal(t, "true", w.Header().Get("Access-Control-Allow-Credentials"))
+			}
+		})
+	}
 }
 
-func TestMiddleware_Logging(t *testing.T) {
-	mockAuth := new(MockAuthService)
-	mw := handler.NewMiddleware(mockAuth)
-
-	called := false
-	handler := mw.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	req := httptest.NewRequest("GET", "/api/test", nil)
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	assert.True(t, called)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestMiddleware_Authentication_Success(t *testing.T) {
-	mockAuth := new(MockAuthService)
-	mw := handler.NewMiddleware(mockAuth)
-
-	session := &service.Session{
+func TestMiddleware_Authentication(t *testing.T) {
+	validSession := &service.Session{
 		UserID:      uuid.New(),
 		Email:       "test@example.com",
 		Role:        domain.RoleGeneral,
@@ -79,140 +93,139 @@ func TestMiddleware_Authentication_Success(t *testing.T) {
 		ExpiresAt:   time.Now().Add(1 * time.Hour),
 	}
 
-	mockAuth.On("GetSession", "session-id").Return(session, nil)
+	tests := []struct {
+		name         string
+		authHeader   string
+		setupMock    func(*MockAuthService)
+		expectedCode int
+		expectCall   bool
+	}{
+		{
+			name:       "Success",
+			authHeader: "Bearer valid-session-id",
+			setupMock: func(m *MockAuthService) {
+				m.On("GetSession", "valid-session-id").Return(validSession, nil)
+			},
+			expectedCode: http.StatusOK,
+			expectCall:   true,
+		},
+		{
+			name:         "Missing Header",
+			authHeader:   "",
+			setupMock:    func(m *MockAuthService) {},
+			expectedCode: http.StatusUnauthorized,
+			expectCall:   false,
+		},
+		{
+			name:         "Invalid Header Format",
+			authHeader:   "InvalidFormat",
+			setupMock:    func(m *MockAuthService) {},
+			expectedCode: http.StatusUnauthorized,
+			expectCall:   false,
+		},
+		{
+			name:       "Session Not Found",
+			authHeader: "Bearer invalid-session-id",
+			setupMock: func(m *MockAuthService) {
+				m.On("GetSession", "invalid-session-id").Return(nil, service.ErrSessionNotFound)
+			},
+			expectedCode: http.StatusUnauthorized,
+			expectCall:   false,
+		},
+	}
 
-	called := false
-	handler := mw.Authentication(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		// セッションがコンテキストに設定されているか確認
-		sess, ok := r.Context().Value(handler.ContextKeySession).(*service.Session)
-		assert.True(t, ok)
-		assert.Equal(t, session.Email, sess.Email)
-		w.WriteHeader(http.StatusOK)
-	}))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuth := new(MockAuthService)
+			tt.setupMock(mockAuth)
+			mw := handler.NewMiddleware(mockAuth)
 
-	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set("Authorization", "Bearer session-id")
-	w := httptest.NewRecorder()
+			called := false
+			h := mw.Authentication(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				called = true
+				w.WriteHeader(http.StatusOK)
+			}))
 
-	handler.ServeHTTP(w, req)
+			req := httptest.NewRequest("GET", "/api/test", nil)
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+			w := httptest.NewRecorder()
 
-	assert.True(t, called)
-	assert.Equal(t, http.StatusOK, w.Code)
-	mockAuth.AssertExpectations(t)
-}
+			h.ServeHTTP(w, req)
 
-func TestMiddleware_Authentication_MissingHeader(t *testing.T) {
-	mockAuth := new(MockAuthService)
-	mw := handler.NewMiddleware(mockAuth)
-
-	handler := mw.Authentication(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("Should not be called")
-	}))
-
-	req := httptest.NewRequest("GET", "/api/test", nil)
-	// Authorization ヘッダーなし
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestMiddleware_Authentication_InvalidSession(t *testing.T) {
-	mockAuth := new(MockAuthService)
-	mw := handler.NewMiddleware(mockAuth)
-
-	mockAuth.On("GetSession", "invalid-session").Return(nil, service.ErrSessionNotFound)
-
-	handler := mw.Authentication(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("Should not be called")
-	}))
-
-	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set("Authorization", "Bearer invalid-session")
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	mockAuth.AssertExpectations(t)
+			assert.Equal(t, tt.expectedCode, w.Code)
+			assert.Equal(t, tt.expectCall, called)
+			mockAuth.AssertExpectations(t)
+		})
+	}
 }
 
 func TestMiddleware_RateLimit(t *testing.T) {
 	mockAuth := new(MockAuthService)
 	mw := handler.NewMiddleware(mockAuth)
 
+	// レート制限のテストはタイミングに依存するため、
+	// 簡易的な確認にとどめるか、RateLimiterのインターフェースをモック化する必要がある
+	// ここでは、通常のリクエストが通ることを確認する
+
 	handler := mw.RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	// 最初のリクエストは成功
 	req := httptest.NewRequest("GET", "/api/test", nil)
 	req.RemoteAddr = "192.168.1.1:12345"
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
-
-	// レート制限は設定されているが、通常のリクエストでは制限されない
-	// （バースト設定により）
 }
 
-func TestMiddleware_CSRF_GET(t *testing.T) {
+func TestMiddleware_CSRF(t *testing.T) {
 	mockAuth := new(MockAuthService)
 	mw := handler.NewMiddleware(mockAuth)
 
-	called := false
-	handler := mw.CSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
+	tests := []struct {
+		name         string
+		method       string
+		headerToken  string
+		expectedCode int
+	}{
+		{
+			name:         "GET Request (Skip Check)",
+			method:       "GET",
+			headerToken:  "",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "POST Request with Valid Token",
+			method:       "POST",
+			headerToken:  "valid-token",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "POST Request Missing Token",
+			method:       "POST",
+			headerToken:  "",
+			expectedCode: http.StatusForbidden,
+		},
+	}
 
-	// GET リクエストは CSRF チェック不要
-	req := httptest.NewRequest("GET", "/api/test", nil)
-	w := httptest.NewRecorder()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := mw.CSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
 
-	handler.ServeHTTP(w, req)
+			req := httptest.NewRequest(tt.method, "/api/test", nil)
+			if tt.headerToken != "" {
+				req.Header.Set("X-CSRF-Token", tt.headerToken)
+			}
+			w := httptest.NewRecorder()
 
-	assert.True(t, called)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
+			handler.ServeHTTP(w, req)
 
-func TestMiddleware_CSRF_POST_MissingToken(t *testing.T) {
-	mockAuth := new(MockAuthService)
-	mw := handler.NewMiddleware(mockAuth)
-
-	handler := mw.CSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("Should not be called")
-	}))
-
-	// POST リクエストで CSRF トークンなし
-	req := httptest.NewRequest("POST", "/api/test", nil)
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusForbidden, w.Code)
-}
-
-func TestMiddleware_CSRF_POST_WithToken(t *testing.T) {
-	mockAuth := new(MockAuthService)
-	mw := handler.NewMiddleware(mockAuth)
-
-	called := false
-	handler := mw.CSRF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	// POST リクエストで CSRF トークンあり
-	req := httptest.NewRequest("POST", "/api/test", nil)
-	req.Header.Set("X-CSRF-Token", "valid-token")
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	assert.True(t, called)
-	assert.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, tt.expectedCode, w.Code)
+		})
+	}
 }

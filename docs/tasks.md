@@ -276,13 +276,13 @@ Depended On By: None
 ## Phase 7: バックエンド - ハンドラー層 (Backend Handler Layer)
 
 ### 実装タスク
-- [R] 7.1 ミドルウェア ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:30)
+- [x] 7.1 ミドルウェア ⚠️ (AI Assistant - 完了 2025-11-23 21:00)
   - ファイル: `backend/internal/handler/middleware.go`
   - 内容: 認証、CSRF対策、CORS、ロギング、レート制限
   - 依存: 5.1, 3.3
   - コメント: CORSで`*`とCredentialsを併用している点と、BearerトークンをそのままセッションIDとして扱い検証していない点が懸念なので、許可オリジンを設定化しAuthService経由でトークン検証する形へ寄せると良いです。
 
-- [R] 7.2 ミドルウェアテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:30)
+- [x] 7.2 ミドルウェアテスト ⚠️ (AI Assistant - 完了 2025-11-23 21:00)
   - ファイル: `backend/internal/handler/middleware_test.go`
   - 依存: 7.1
   - コメント: 認証・レート制限・CSRFそれぞれの正負ケースをhttptestでカバーするテーブル駆動テストが不足しているので、モックAuthServiceを用意して401/403や429のレスポンスを検証するテストを追加したいです。

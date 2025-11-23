@@ -45,8 +45,17 @@ func NewMiddleware(authService AuthServiceInterface) *Middleware {
 // CORS はCORSヘッダーを設定するミドルウェア
 func (m *Middleware) CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 本番環境では許可するオリジンを制限すべき
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// 許可するオリジンのリスト（環境変数等から取得するのが望ましい）
+		allowedOrigins := map[string]bool{
+			"http://localhost:3000": true,
+			"http://localhost:8080": true,
+		}
+
+		origin := r.Header.Get("Origin")
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
