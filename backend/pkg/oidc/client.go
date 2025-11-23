@@ -3,9 +3,12 @@ package oidc
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -18,6 +21,9 @@ var (
 	ErrInvalidIssuer   = errors.New("invalid issuer")
 	ErrInvalidAudience = errors.New("invalid audience")
 	ErrInvalidConfig   = errors.New("invalid configuration")
+	ErrInvalidNonce    = errors.New("invalid nonce")
+	ErrInvalidAtHash   = errors.New("invalid at_hash")
+	ErrFutureIssuedAt  = errors.New("token issued in the future")
 )
 
 // ClockSkew はトークン検証時の許容クロックスキュー
@@ -125,17 +131,30 @@ func (c *Client) GetUserInfo(ctx context.Context, idToken *oidc.IDToken) (*UserI
 	return &userInfo, nil
 }
 
-// ValidateToken はアクセストークンを検証します（簡易実装）
-// TODO: 本番環境では以下の実装が必要:
-// - JWTの場合: 署名検証、有効期限検証、issuer/audience検証
-// - Opaqueトークンの場合: トークンイントロスペクションエンドポイントへの問い合わせ
-// 現状は存在チェックのみで、セキュリティ上の検証は不十分です。
+// ValidateToken はアクセストークンを検証します
+// JWT形式のアクセストークンの場合、署名検証と有効期限チェックを行います
 func (c *Client) ValidateToken(ctx context.Context, accessToken string) error {
-	// 実際の実装では、トークンイントロスペクションエンドポイントを使用するか、
-	// JWTの場合は署名検証を行う
-	// ここでは簡易的にトークンの存在チェックのみ
 	if accessToken == "" {
 		return ErrInvalidToken
+	}
+
+	// JWT形式かチェック（3つのパートがドットで区切られている）
+	parts := strings.Split(accessToken, ".")
+	if len(parts) != 3 {
+		// Opaque tokenの場合、イントロスペクションエンドポイントが必要
+		// 現状は存在チェックのみ
+		return nil
+	}
+
+	// JWTの場合、oidc.Verifierを使用して検証
+	// アクセストークン用のVerifierを作成（audience検証なし）
+	verifier := c.provider.Verifier(&oidc.Config{
+		SkipClientIDCheck: true, // アクセストークンにはaudience要求なし
+	})
+
+	_, err := verifier.Verify(ctx, accessToken)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	return nil
@@ -205,7 +224,13 @@ func (a audienceWrapper) Contains(audience string) bool {
 }
 
 // ParseIDTokenClaims はIDトークンのクレームをパースします
+// nonceとaccessTokenを指定することで追加検証を行います
 func (c *Client) ParseIDTokenClaims(ctx context.Context, rawIDToken string) (*TokenClaims, error) {
+	return c.ParseIDTokenClaimsWithValidation(ctx, rawIDToken, "", "")
+}
+
+// ParseIDTokenClaimsWithValidation はIDトークンのクレームをパースし、nonce/at_hashを検証します
+func (c *Client) ParseIDTokenClaimsWithValidation(ctx context.Context, rawIDToken, expectedNonce, accessToken string) (*TokenClaims, error) {
 	if c.config == nil {
 		return nil, ErrInvalidConfig
 	}
@@ -221,7 +246,7 @@ func (c *Client) ParseIDTokenClaims(ctx context.Context, rawIDToken string) (*To
 	}
 
 	// 追加の検証（クロックスキュー許容）
-	if err := c.validateClaims(&claims); err != nil {
+	if err := c.validateClaims(&claims, expectedNonce, accessToken); err != nil {
 		return nil, err
 	}
 
@@ -229,11 +254,7 @@ func (c *Client) ParseIDTokenClaims(ctx context.Context, rawIDToken string) (*To
 }
 
 // validateClaims はクレームの追加検証を行います
-// TODO: 本番環境では以下の検証も追加が必要:
-// - nonce検証（セッションと照合）
-// - at_hash検証（アクセストークンとの整合性）
-// - azp検証（複数audienceの場合）
-func (c *Client) validateClaims(claims *TokenClaims) error {
+func (c *Client) validateClaims(claims *TokenClaims, expectedNonce, accessToken string) error {
 	if c.config == nil {
 		return ErrInvalidConfig
 	}
@@ -255,15 +276,41 @@ func (c *Client) validateClaims(claims *TokenClaims) error {
 		return fmt.Errorf("%w: token expired at %v (now: %v)", ErrTokenExpired, expTime, now)
 	}
 
-	// TODO: nonce検証
-	// if expectedNonce != "" && claims.Nonce != expectedNonce {
-	//     return ErrInvalidNonce
-	// }
+	// iat（発行時刻）の未来値チェック（クロックスキュー許容）
+	iatTime := time.Unix(claims.IssuedAt, 0)
+	if now.Add(ClockSkew).Before(iatTime) {
+		return fmt.Errorf("%w: token issued at %v (now: %v)", ErrFutureIssuedAt, iatTime, now)
+	}
 
-	// TODO: at_hash検証
-	// if accessToken != "" && !verifyAtHash(claims.AtHash, accessToken) {
-	//     return ErrInvalidAtHash
-	// }
+	// nonce検証
+	if expectedNonce != "" {
+		if claims.Nonce == "" {
+			return fmt.Errorf("%w: nonce claim is missing", ErrInvalidNonce)
+		}
+		if claims.Nonce != expectedNonce {
+			return fmt.Errorf("%w: expected %s, got %s", ErrInvalidNonce, expectedNonce, claims.Nonce)
+		}
+	}
+
+	// at_hash検証（アクセストークンが提供された場合）
+	if accessToken != "" && claims.AtHash != "" {
+		if !verifyAtHash(claims.AtHash, accessToken) {
+			return fmt.Errorf("%w: at_hash verification failed", ErrInvalidAtHash)
+		}
+	}
 
 	return nil
+}
+
+// verifyAtHash はat_hashクレームを検証します
+// OIDC仕様: at_hash = base64url(left_half(sha256(access_token)))
+func verifyAtHash(atHash, accessToken string) bool {
+	// アクセストークンのSHA256ハッシュを計算
+	hash := sha256.Sum256([]byte(accessToken))
+	// 左半分を取得
+	leftHalf := hash[:len(hash)/2]
+	// Base64 URL エンコード（パディングなし）
+	expected := base64.RawURLEncoding.EncodeToString(leftHalf)
+
+	return atHash == expected
 }
