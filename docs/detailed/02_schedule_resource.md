@@ -229,11 +229,110 @@ stateDiagram-v2
 - **EventDetail**
     - `EventSummary` に加え、`participants[] { userId, role, status }`, `recurrence`, `allowProxy`, `notes`, `updatedAt`
 
-### 7.3 バリデーション/エラー取り扱い
-- `startAt < endAt` かつ最大12時間。過去時刻の作成は拒否。
-- `recurrence` は `COUNT` または `UNTIL` が必須、展開上限200インスタンス。例外が多い場合は `409 CONFLICT` を返却。
-- リソース重複時は `409 CONFLICT` として `conflictDetails[] { resourceId, startAt, endAt }` をレスポンスに含める。
-- スキーマ違反は `400 VALIDATION_ERROR` とし、`errors[] { field, message }` と `traceId` を返却。
+### 7.3 バリデーション・エラーハンドリング詳細
+
+#### 7.3.1 バリデーション実装方針
+統一レスポンス形式に準拠した詳細なエラー情報提供。
+
+**バリデーション段階:**
+1. **スキーマ検証**: JSON構造・型・必須フィールド
+2. **フォーマット検証**: 日時形式・文字列パターン・数値範囲
+3. **ビジネスルール検証**: 時間関係・権限・リソース可用性
+4. **整合性検証**: 関連データとの整合性・重複チェック
+
+#### 7.3.2 エラーレスポンス詳細設計
+
+**リソース競合エラー例:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "Resource scheduling conflict detected",
+    "details": [
+      {
+        "field": "resources[0]",
+        "code": "RESOURCE_UNAVAILABLE",
+        "message": "Room is already booked for overlapping time",
+        "conflictDetails": {
+          "resourceId": "room-101",
+          "resourceName": "A会議室",
+          "requestedStart": "2025-12-01T10:00:00Z",
+          "requestedEnd": "2025-12-01T11:00:00Z",
+          "conflictingReservations": [
+            {
+              "eventId": "evt-8999",
+              "title": "部長会議",
+              "start": "2025-12-01T09:30:00Z",
+              "end": "2025-12-01T11:30:00Z",
+              "organizer": "yamada@company.com"
+            }
+          ],
+          "alternatives": [
+            {
+              "resourceId": "room-102",
+              "resourceName": "B会議室",
+              "availableStart": "2025-12-01T10:00:00Z",
+              "availableEnd": "2025-12-01T11:00:00Z",
+              "capacity": 8,
+              "equipment": ["projector", "whiteboard"]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "meta": {
+    "requestId": "req_conflict_12345",
+    "timestamp": "2025-11-24T02:30:00Z",
+    "version": "v1"
+  }
+}
+```
+
+**複合バリデーションエラー例:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR", 
+    "message": "Multiple validation errors detected",
+    "details": [
+      {
+        "field": "startAt",
+        "code": "OUT_OF_RANGE",
+        "message": "Start time must be in the future",
+        "value": "2025-11-20T10:00:00Z"
+      },
+      {
+        "field": "participants[1].userId",
+        "code": "INVALID_USER",
+        "message": "User does not exist or is inactive",
+        "value": "invalid-user-123"
+      },
+      {
+        "field": "recurrence.rrule",
+        "code": "INVALID_FORMAT",
+        "message": "RRULE must follow RFC 5545 format",
+        "value": "INVALID_RRULE_STRING"
+      }
+    ]
+  },
+  "meta": {
+    "requestId": "req_validation_67890",
+    "timestamp": "2025-11-24T02:30:00Z",
+    "version": "v1"
+  }
+}
+```
+
+#### 7.3.3 国際化対応
+エラーメッセージの多言語化とクライアント側表示制御。
+
+**メッセージキー方式:**
+- サーバー：エラーコード + パラメータを返却
+- クライアント：ロケールに応じたメッセージ表示
+- フォールバック：英語メッセージを常に含める
 
 ## 8. パフォーマンス・スケーラビリティ設計
 

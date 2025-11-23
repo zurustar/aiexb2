@@ -479,10 +479,80 @@ graph TD
 *   **プロトコル:** RESTful API (JSON over HTTPS)
 *   **認証:** Authorization Header に Bearer Token (JWT) を設定。
 *   **バージョニング:** URLパスにバージョンを含める (例: `/api/v1/events`)。
-*   **エラーハンドリング:** HTTPステータスコード (2xx, 4xx, 5xx) と、詳細エラーメッセージを含むJSONレスポンスを返す。
+*   **統一レスポンス:** 成功・エラー問わず統一されたJSONエンベロープ形式を採用。
+*   **エラーハンドリング:** HTTPステータスコード + 詳細なエラー情報（コード・メッセージ・フィールド別詳細）を提供。
+*   **国際化対応:** エラーメッセージの多言語化とクライアント側での表示制御をサポート。
 
-### 5.3 API/DTO インターフェース仕様
-#### 5.3.1 エンドポイント一覧
+### 5.3 統一レスポンス形式
+
+#### 5.3.1 レスポンスエンベロープ
+全てのAPIエンドポイントは以下の統一形式でレスポンスを返却する。
+
+**成功レスポンス (HTTP 2xx):**
+```json
+{
+  "success": true,
+  "data": {
+    // 実際のレスポンスデータ
+  },
+  "meta": {
+    "requestId": "req_1234567890abcdef",
+    "timestamp": "2025-11-23T10:00:00Z",
+    "version": "v1",
+    "pagination": {  // ページネーション対象の場合のみ
+      "limit": 20,
+      "cursor": "next_cursor_token",
+      "hasMore": true
+    }
+  }
+}
+```
+
+**エラーレスポンス (HTTP 4xx/5xx):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": [
+      {
+        "field": "startAt",
+        "code": "INVALID_FORMAT", 
+        "message": "must be ISO8601 format",
+        "value": "2025-13-01"
+      }
+    ]
+  },
+  "meta": {
+    "requestId": "req_1234567890abcdef",
+    "timestamp": "2025-11-23T10:00:00Z",
+    "version": "v1"
+  }
+}
+```
+
+#### 5.3.2 エラーコード体系
+階層的なエラーコード設計により、クライアント側での適切なエラーハンドリングを支援。
+
+| レベル | エラーコード | 説明 | HTTPステータス |
+| :--- | :--- | :--- | :--- |
+| **認証・認可** | `UNAUTHORIZED` | 認証情報なし・無効 | 401 |
+| | `FORBIDDEN` | 権限不足 | 403 |
+| | `TOKEN_EXPIRED` | トークン期限切れ | 401 |
+| **バリデーション** | `VALIDATION_ERROR` | 入力値検証エラー | 400 |
+| | `INVALID_FORMAT` | フォーマット不正 | 400 |
+| | `REQUIRED_FIELD` | 必須フィールド未入力 | 400 |
+| | `OUT_OF_RANGE` | 値が範囲外 | 400 |
+| **ビジネスロジック** | `CONFLICT` | リソース競合 | 409 |
+| | `RESOURCE_NOT_FOUND` | リソース未存在 | 404 |
+| | `BUSINESS_RULE_VIOLATION` | ビジネスルール違反 | 422 |
+| **システム** | `INTERNAL_ERROR` | サーバー内部エラー | 500 |
+| | `SERVICE_UNAVAILABLE` | サービス利用不可 | 503 |
+| | `RATE_LIMITED` | レート制限超過 | 429 |
+
+### 5.4 API/DTO インターフェース仕様
+#### 5.4.1 エンドポイント一覧
 | グループ | メソッド | パス | 主な機能 | 備考 |
 | :--- | :--- | :--- | :--- | :--- |
 | 認証 | POST | `/api/v1/auth/login` | SSO/OIDC 後のトークン交換 | IdP コールバックで利用 |
@@ -503,7 +573,7 @@ graph TD
     - 並び順: `sort` クエリ（`startAt asc|desc`）。
     - 部分項目取得: `fields` クエリで返却カラムを制限（例: `fields=title,startAt,endAt`）。
 
-#### 5.3.2 リクエスト/レスポンス例（抜粋）
+#### 5.4.2 リクエスト/レスポンス例（抜粋）
 * **POST `/api/v1/events` (予定作成)**
     - リクエスト
     ```json
@@ -527,99 +597,204 @@ graph TD
       "notes": "アジェンダ共有予定"
     }
     ```
-    - レスポンス
+    - 成功レスポンス
     ```json
     {
-      "eventId": "evt-9001",
-      "conflict": false,
-      "approvalStatus": "Pending",
-      "createdAt": "2025-11-24T02:30:00Z"
+      "success": true,
+      "data": {
+        "eventId": "evt-9001",
+        "conflict": false,
+        "approvalStatus": "Confirmed",
+        "createdAt": "2025-11-24T02:30:00Z"
+      },
+      "meta": {
+        "requestId": "req_1234567890abcdef",
+        "timestamp": "2025-11-24T02:30:00Z",
+        "version": "v1"
+      }
+    }
+    ```
+    - 競合エラーレスポンス
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "CONFLICT",
+        "message": "Resource conflict detected",
+        "details": [
+          {
+            "field": "resources[0].resourceId",
+            "code": "RESOURCE_UNAVAILABLE",
+            "message": "Room is already booked for this time slot",
+            "value": "room-101",
+            "conflictDetails": {
+              "resourceId": "room-101",
+              "conflictingEventId": "evt-8999",
+              "conflictStart": "2025-12-01T09:30:00Z",
+              "conflictEnd": "2025-12-01T11:30:00Z",
+              "alternatives": [
+                {
+                  "resourceId": "room-102",
+                  "name": "B会議室",
+                  "startAt": "2025-12-01T10:00:00Z",
+                  "endAt": "2025-12-01T11:00:00Z"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "meta": {
+        "requestId": "req_1234567890abcdef",
+        "timestamp": "2025-11-24T02:30:00Z",
+        "version": "v1"
+      }
     }
     ```
 
 * **GET `/api/v1/events` (予定一覧) 例**
     ```json
     {
-      "items": [
-        {
-          "eventId": "evt-9001",
-          "title": "プロジェクト定例",
-          "startAt": "2025-12-01T10:00:00Z",
-          "endAt": "2025-12-01T11:00:00Z",
-          "isPrivate": false,
-          "resources": [
-            { "resourceId": "room-101", "name": "A会議室" }
-          ]
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "eventId": "evt-9001",
+            "title": "プロジェクト定例",
+            "startAt": "2025-12-01T10:00:00Z",
+            "endAt": "2025-12-01T11:00:00Z",
+            "isPrivate": false,
+            "resources": [
+              { "resourceId": "room-101", "name": "A会議室" }
+            ]
+          }
+        ]
+      },
+      "meta": {
+        "requestId": "req_1234567890abcdef",
+        "timestamp": "2025-11-24T02:30:00Z",
+        "version": "v1",
+        "pagination": {
+          "limit": 20,
+          "cursor": null,
+          "hasMore": false
         }
-      ],
-      "nextCursor": null
+      }
     }
     ```
 
 * **GET `/api/v1/events/{eventId}` (予定詳細) 例**
     ```json
     {
-      "eventId": "evt-9001",
-      "title": "プロジェクト定例",
-      "startAt": "2025-12-01T10:00:00Z",
-      "endAt": "2025-12-01T11:00:00Z",
-      "timezone": "Asia/Tokyo",
-      "isPrivate": false,
-      "approvalStatus": "Pending",
-      "resources": [
-        { "resourceId": "room-101", "name": "A会議室", "required": true }
-      ],
-      "participants": [
-        { "userId": "u-123", "role": "organizer", "status": "Accepted" },
-        { "userId": "u-456", "role": "attendee", "status": "NeedsAction" }
-      ],
-      "recurrence": {
-        "rrule": "FREQ=WEEKLY;COUNT=4",
-        "until": null
+      "success": true,
+      "data": {
+        "eventId": "evt-9001",
+        "title": "プロジェクト定例",
+        "startAt": "2025-12-01T10:00:00Z",
+        "endAt": "2025-12-01T11:00:00Z",
+        "timezone": "Asia/Tokyo",
+        "isPrivate": false,
+        "approvalStatus": "Confirmed",
+        "resources": [
+          { "resourceId": "room-101", "name": "A会議室", "required": true }
+        ],
+        "participants": [
+          { "userId": "u-123", "role": "organizer", "status": "Accepted" },
+          { "userId": "u-456", "role": "attendee", "status": "NeedsAction" }
+        ],
+        "recurrence": {
+          "rrule": "FREQ=WEEKLY;COUNT=4",
+          "until": null
+        },
+        "allowProxy": true,
+        "notes": "アジェンダ共有予定",
+        "updatedAt": "2025-11-24T02:30:00Z"
       },
-      "allowProxy": true,
-      "notes": "アジェンダ共有予定",
-      "conflict": false,
-      "updatedAt": "2025-11-24T02:30:00Z"
+      "meta": {
+        "requestId": "req_1234567890abcdef",
+        "timestamp": "2025-11-24T02:30:00Z",
+        "version": "v1"
+      }
     }
     ```
 
-#### 5.3.3 バリデーションとエラーコード
-* **主なバリデーション**
-    - `startAt < endAt`、1件あたり最大12時間。
-    - `title` は必須・最大200文字、制御文字禁止。
-    - `participants` 最低1名、`organizer` が必須。代理作成時は委任期間内かチェック。
-    - `resources` は施設の営業時間と重複を判定し、同一時間帯の二重予約は `409 Conflict`。
-    - `recurrence.rrule` は RFC 5545 に準拠し、`COUNT`/`UNTIL` いずれか必須、展開上限は200インスタンス。
-    - タイムゾーンは IANA 名称のみ許容。過去時刻の新規作成は禁止。
+#### 5.4.3 バリデーション詳細
 
-* **エラーコード方針**
-    | HTTP | code | 説明 |
-    | :--- | :--- | :--- |
-    | 400 | `VALIDATION_ERROR` | スキーマ違反・フォーマット不正。`errors[]` にフィールド別メッセージを含める。 |
-    | 401 | `UNAUTHORIZED` | トークン未設定・期限切れ。 |
-    | 403 | `FORBIDDEN` | RBAC で拒否、代理権限外。 |
-    | 404 | `NOT_FOUND` | 存在しない/非公開リソースへのアクセス。 |
-    | 409 | `CONFLICT` | 二重予約・承認状態不整合。レスポンスに `conflictDetails` を含める。 |
-    | 429 | `RATE_LIMITED` | ユーザー/組織ごとのレート制限超過。リトライヘッダ付与。 |
-    | 500 | `INTERNAL_ERROR` | サーバー内部エラー。トレースIDを返却。 |
+**主なバリデーションルール:**
+- `startAt < endAt`、1件あたり最大12時間、過去時刻の新規作成禁止
+- `title` は必須・最大200文字、制御文字禁止
+- `participants` 最低1名、`organizer` が必須、代理作成時は委任期間内チェック
+- `resources` は施設営業時間内、同一時間帯の重複予約は競合エラー
+- `recurrence.rrule` は RFC 5545 準拠、`COUNT`/`UNTIL` いずれか必須、展開上限200インスタンス
+- `timezone` は IANA 名称のみ許容
 
-    - **エラーレスポンス例**
-    ```json
-    {
-      "code": "VALIDATION_ERROR",
-      "message": "Invalid request payload",
-      "errors": [
-        { "field": "startAt", "message": "must be before endAt" }
-      ],
-      "traceId": "req-12345"
-    }
-    ```
+**フィールド別エラーコード:**
+| フィールド | エラーコード | 説明 |
+| :--- | :--- | :--- |
+| `startAt` | `REQUIRED_FIELD` | 必須フィールド未入力 |
+| | `INVALID_FORMAT` | ISO8601形式でない |
+| | `OUT_OF_RANGE` | 過去時刻または営業時間外 |
+| `title` | `REQUIRED_FIELD` | タイトル未入力 |
+| | `TOO_LONG` | 200文字超過 |
+| | `INVALID_CHARACTERS` | 制御文字含有 |
+| `resources` | `RESOURCE_UNAVAILABLE` | リソース競合 |
+| | `PERMISSION_DENIED` | リソースアクセス権限なし |
+| `participants` | `INVALID_USER` | 存在しないユーザーID |
+| | `ORGANIZER_REQUIRED` | 主催者が未指定 |
 
-#### 5.3.4 型・スキーマ共有方針
-*   OpenAPI 3.1 の YAML を単一ソースとし、バックエンドはコードジェネレーターでスタブ/DTOを生成する。
-*   フロントエンドは OpenAPI から TypeScript 型（Zod/TypeBox スキーマ併用）を自動生成し、入力フォームや API クライアントのバリデーションを同一スキーマで実施する。
-*   CI で OpenAPI 定義のスキーマ差分チェックを行い、破壊的変更はリリースノートとクライアントビルドを同時更新する運用とする。
+**バリデーションエラー例:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": [
+      {
+        "field": "startAt",
+        "code": "INVALID_FORMAT",
+        "message": "must be ISO8601 format",
+        "value": "2025-13-01"
+      },
+      {
+        "field": "title",
+        "code": "TOO_LONG",
+        "message": "must be 200 characters or less",
+        "value": "very long title..."
+      }
+    ]
+  },
+  "meta": {
+    "requestId": "req_1234567890abcdef",
+    "timestamp": "2025-11-24T02:30:00Z",
+    "version": "v1"
+  }
+}
+```
+
+#### 5.4.4 OpenAPI仕様・型共有方針
+
+**OpenAPI 3.1 仕様:**
+- 全エンドポイントの詳細スキーマ定義（リクエスト・レスポンス・エラー）
+- 統一レスポンスエンベロープの共通コンポーネント化
+- バリデーションルールの詳細記述（pattern、format、範囲等）
+- エラーコード・メッセージの多言語対応スキーマ
+
+**コード生成・型共有:**
+- バックエンド：OpenAPIからGo構造体・バリデーター自動生成
+- フロントエンド：TypeScript型・Zodスキーマ自動生成
+- 共通：エラーコード定数・メッセージテンプレート生成
+
+**CI/CD統合:**
+- OpenAPI定義の破壊的変更検知
+- スキーマ差分レポート自動生成
+- クライアント・サーバー同期ビルド
+- API仕様書の自動更新・公開
+
+**品質保証:**
+- リクエスト・レスポンスの契約テスト
+- エラーケースの網羅的テスト
+- 多言語メッセージの整合性チェック
 
 ## 6. インフラ・セキュリティ設計
 
