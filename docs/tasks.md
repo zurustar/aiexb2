@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-24 15:25 JST
+最終更新: 2025-11-24 18:00 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -505,26 +505,26 @@ Depended On By: None
 ## Phase 12: フロントエンド - レイアウトコンポーネント (Frontend Layout Components)
 
 ### 実装タスク
-- [ ] 12.1 ヘッダー
+- [R] 12.1 ヘッダー (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Header.tsx`
   - 依存: 10.1, 11.1
 
-- [ ] 12.2 ヘッダーテスト
+- [R] 12.2 ヘッダーテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Header.test.tsx`
   - 依存: 12.1
 
-- [ ] 12.3 サイドバー
+- [R] 12.3 サイドバー (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Sidebar.tsx`
   - 依存: 10.1
 
-- [ ] 12.4 サイドバーテスト
+- [R] 12.4 サイドバーテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Sidebar.test.tsx`
   - 依存: 12.3
 
-- [ ] 12.5 フッター
+- [R] 12.5 フッター (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Footer.tsx`
 
-- [ ] 12.6 フッターテスト
+- [R] 12.6 フッターテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/layout/Footer.test.tsx`
   - 依存: 12.5
 
@@ -536,34 +536,34 @@ Depended On By: None
 ## Phase 13: フロントエンド - 機能別コンポーネント (Frontend Feature Components)
 
 ### 実装タスク
-- [ ] 13.1 カレンダーコンポーネント
+- [R] 13.1 カレンダーコンポーネント (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/calendar/CalendarView.tsx`
   - 依存: 10.3, 11.5
 
-- [ ] 13.2 カレンダーコンポーネントテスト
+- [R] 13.2 カレンダーコンポーネントテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/calendar/CalendarView.test.tsx`
   - 依存: 13.1
 
-- [ ] 13.3 予約作成フォーム
+- [R] 13.3 予約作成フォーム (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.tsx`
 
-- [ ] 13.4 予約作成フォームテスト
+- [R] 13.4 予約作成フォームテスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.test.tsx`
   - 依存: 13.3
 
-- [ ] 13.5 予約詳細
+- [R] 13.5 予約詳細 (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationDetail.tsx`
   - 依存: 10.3, 11.3
 
-- [ ] 13.6 予約詳細テスト
+- [R] 13.6 予約詳細テスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/reservation/ReservationDetail.test.tsx`
   - 依存: 13.5
 
-- [ ] 13.7 承認一覧
+- [R] 13.7 承認一覧 (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/approval/ApprovalList.tsx`
   - 依存: 10.3, 11.1
 
-- [ ] 13.8 承認一覧テスト
+- [R] 13.8 承認一覧テスト (AI Assistant - レビュー待ち 2025-11-24 18:00)
   - ファイル: `frontend/src/components/features/approval/ApprovalList.test.tsx`
   - 依存: 13.7
 
