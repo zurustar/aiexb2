@@ -56,6 +56,7 @@ func TestRedisClient_Get_NotFound(t *testing.T) {
 	var result TestData
 	err := client.Get(ctx, key, &result)
 	assert.Error(t, err)
+	assert.Equal(t, cache.ErrCacheMiss, err)
 	// redis.Nil エラーが返ることを期待（ラップされている可能性も考慮）
 
 	assert.NoError(t, mock.ExpectationsWereMet())

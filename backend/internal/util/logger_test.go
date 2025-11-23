@@ -14,11 +14,11 @@ import (
 
 func TestInitLogger(t *testing.T) {
 	// Dev mode (TextHandler)
-	loggerDev := util.InitLogger(true)
+	loggerDev := util.InitLogger(true, nil)
 	assert.NotNil(t, loggerDev)
 
 	// Prod mode (JSONHandler)
-	loggerProd := util.InitLogger(false)
+	loggerProd := util.InitLogger(false, nil)
 	assert.NotNil(t, loggerProd)
 }
 

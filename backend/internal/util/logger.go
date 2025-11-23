@@ -3,6 +3,7 @@ package util
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 )
@@ -14,16 +15,20 @@ const (
 )
 
 // InitLogger はロガーを初期化します
-func InitLogger(isDev bool) *slog.Logger {
+// w が nil の場合は os.Stdout に出力します
+func InitLogger(isDev bool, w io.Writer) *slog.Logger {
+	if w == nil {
+		w = os.Stdout
+	}
 	var handler slog.Handler
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}
 	if isDev {
 		opts.Level = slog.LevelDebug
-		handler = slog.NewTextHandler(os.Stdout, opts)
+		handler = slog.NewTextHandler(w, opts)
 	} else {
-		handler = slog.NewJSONHandler(os.Stdout, opts)
+		handler = slog.NewJSONHandler(w, opts)
 	}
 	logger := slog.New(handler)
 	slog.SetDefault(logger)

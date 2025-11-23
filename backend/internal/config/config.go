@@ -10,23 +10,26 @@ import (
 
 // Config はアプリケーション設定を保持する構造体
 type Config struct {
-	AppEnv        string
-	ServerPort    string
-	DBHost        string
-	DBPort        string
-	DBUser        string
-	DBPassword    string
-	DBName        string
-	DBSSLMode     string
-	RedisHost     string
-	RedisPort     string
-	RedisPassword string
-	RedisDB       int
-	OIDCProvider  string
-	OIDCClientID  string
-	OIDCSecret    string
-	OIDCRedirect  string
-	AuditSecret   string // 監査ログ署名用シークレット
+	AppEnv              string
+	ServerPort          string
+	DBHost              string
+	DBPort              string
+	DBUser              string
+	DBPassword          string
+	DBName              string
+	DBSSLMode           string
+	RedisHost           string
+	RedisPort           string
+	RedisPassword       string
+	RedisDB             int
+	RedisConnectTimeout time.Duration
+	RedisReadTimeout    time.Duration
+	RedisWriteTimeout   time.Duration
+	OIDCProvider        string
+	OIDCClientID        string
+	OIDCSecret          string
+	OIDCRedirect        string
+	AuditSecret         string // 監査ログ署名用シークレット
 }
 
 // Load は環境変数から設定を読み込みます
@@ -56,6 +59,10 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid REDIS_DB: %w", err)
 	}
 	cfg.RedisDB = redisDB
+
+	cfg.RedisConnectTimeout = GetDurationEnv("REDIS_CONNECT_TIMEOUT", 5*time.Second)
+	cfg.RedisReadTimeout = GetDurationEnv("REDIS_READ_TIMEOUT", 3*time.Second)
+	cfg.RedisWriteTimeout = GetDurationEnv("REDIS_WRITE_TIMEOUT", 3*time.Second)
 
 	return cfg, nil
 }

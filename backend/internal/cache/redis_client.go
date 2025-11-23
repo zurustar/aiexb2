@@ -4,12 +4,16 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/your-org/esms/internal/config"
 )
+
+// ErrCacheMiss はキャッシュが存在しない場合のエラー
+var ErrCacheMiss = errors.New("cache: key not found")
 
 // RedisClient はRedis操作のラッパー
 type RedisClient struct {
@@ -19,12 +23,15 @@ type RedisClient struct {
 // NewRedisClient は新しいRedisクライアントを作成します
 func NewRedisClient(cfg *config.Config) (*RedisClient, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr(),
-		Password: cfg.RedisPassword,
-		DB:       cfg.RedisDB,
+		Addr:         cfg.RedisAddr(),
+		Password:     cfg.RedisPassword,
+		DB:           cfg.RedisDB,
+		DialTimeout:  cfg.RedisConnectTimeout,
+		ReadTimeout:  cfg.RedisReadTimeout,
+		WriteTimeout: cfg.RedisWriteTimeout,
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.RedisConnectTimeout)
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -48,7 +55,7 @@ func (r *RedisClient) Get(ctx context.Context, key string, dest interface{}) err
 	val, err := r.Client.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return err // キーが存在しない
+			return ErrCacheMiss // 独自エラーを返す
 		}
 		return fmt.Errorf("failed to get value from redis: %w", err)
 	}

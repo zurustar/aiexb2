@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 14:05 JST
+最終更新: 2025-11-23 14:20 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -95,7 +95,7 @@ Depended On By: None
 ## Phase 3: バックエンド - 設定・ユーティリティ (Backend Config & Utilities)
 
 ### 実装タスク
-- [x] 3.1 設定管理 (AI Assistant - 完了 2025-11-23 13:55)
+- [R] 3.1 設定管理 (AI Assistant - レビュー待ち 2025-11-23 14:20)
   - ファイル: `backend/internal/config/config.go`
   - 内容: 環境変数読み込み、DB接続設定、Redis設定、OIDC設定
 
@@ -103,50 +103,50 @@ Depended On By: None
   - ファイル: `backend/internal/config/config_test.go`
   - 依存: 3.1
 
-- [x] 3.3 ロガー (AI Assistant - 完了 2025-11-23 13:55)
+- [R] 3.3 ロガー (AI Assistant - レビュー待ち 2025-11-23 14:20)
   - ファイル: `backend/internal/util/logger.go`
   - 内容: 構造化ログ、ログレベル管理、リクエストIDトレース
 
-- [x] 3.4 ロガーテスト (AI Assistant - 完了 2025-11-23 13:55)
+- [R] 3.4 ロガーテスト (AI Assistant - レビュー待ち 2025-11-23 14:20)
   - ファイル: `backend/internal/util/logger_test.go`
   - 依存: 3.3
 
-- [x] 3.5 バリデーター (AI Assistant - 完了 2025-11-23 13:55)
+- [R] 3.5 バリデーター (AI Assistant - レビュー待ち 2025-11-23 14:05)
   - ファイル: `backend/internal/util/validator.go`
   - 内容: 入力値検証、エラーメッセージ生成、国際化対応
 
-- [x] 3.6 バリデーターテスト (AI Assistant - 完了 2025-11-23 13:55)
+- [R] 3.6 バリデーターテスト (AI Assistant - レビュー待ち 2025-11-23 14:05)
   - ファイル: `backend/internal/util/validator_test.go`
   - 依存: 3.5
 
-- [x] 3.7 時間ユーティリティ (AI Assistant - 完了 2025-11-23 14:05)
+- [R] 3.7 時間ユーティリティ (AI Assistant - レビュー待ち 2025-11-23 14:05)
   - ファイル: `backend/internal/util/time.go`
   - 内容: タイムゾーン変換、時間範囲重複チェック、営業時間判定
 
-- [x] 3.8 時間ユーティリティテスト (AI Assistant - 完了 2025-11-23 14:05)
+- [R] 3.8 時間ユーティリティテスト (AI Assistant - レビュー待ち 2025-11-23 14:05)
   - ファイル: `backend/internal/util/time_test.go`
   - 依存: 3.7
 
-- [x] 3.9 Redisクライアント (AI Assistant - 完了 2025-11-23 14:05)
+- [R] 3.9 Redisクライアント (AI Assistant - レビュー待ち 2025-11-23 14:20)
   - ファイル: `backend/internal/cache/redis_client.go`
   - 内容: Redis接続管理、キャッシュ操作、セッション管理
   - 依存: 3.1
 
-- [x] 3.10 Redisクライアントテスト (AI Assistant - 完了 2025-11-23 14:05)
+- [R] 3.10 Redisクライアントテスト (AI Assistant - レビュー待ち 2025-11-23 14:20)
   - ファイル: `backend/internal/cache/redis_client_test.go`
   - 依存: 3.9
 
-- [x] 3.11 ジョブキュー (AI Assistant - 完了 2025-11-23 14:05)
+- [R] 3.11 ジョブキュー (AI Assistant - レビュー待ち 2025-11-23 14:05)
   - ファイル: `backend/internal/queue/job_queue.go`
   - 内容: バックグラウンドジョブ管理、リトライ機構、冪等性キー
   - 依存: 3.9
 
-- [x] 3.12 ジョブキューテスト (AI Assistant - 完了 2025-11-23 14:05)
+- [R] 3.12 ジョブキューテスト (AI Assistant - レビュー待ち 2025-11-23 14:05)
   - ファイル: `backend/internal/queue/job_queue_test.go`
   - 依存: 3.11
 
 ### Phase 3 チェックポイント
-- [x] Phase 3 レビュー完了
+- [ ] Phase 3 レビュー完了 ⚠️
 
 ---
 
@@ -198,7 +198,7 @@ Depended On By: None
   - 依存: 4.1, 4.3, 4.5, 4.7
 
 ### Phase 4 チェックポイント
-- [ ] Phase 4 レビュー完了
+- [ ] Phase 4 レビュー完了 ⚠️
 
 ---
 
@@ -247,7 +247,7 @@ Depended On By: None
   - 依存: 5.1, 5.3, 5.5, 5.7
 
 ### Phase 5 チェックポイント
-- [ ] Phase 5 レビュー完了
+- [ ] Phase 5 レビュー完了 ⚠️
 
 ---
 
@@ -264,7 +264,7 @@ Depended On By: None
   - 依存: 6.1
 
 ### Phase 6 チェックポイント
-- [ ] Phase 6 レビュー完了
+- [ ] Phase 6 レビュー完了 ⚠️
 
 ---
 
@@ -322,7 +322,7 @@ Depended On By: None
   - 依存: 7.3, 7.5, 7.7, 7.9
 
 ### Phase 7 チェックポイント
-- [ ] Phase 7 レビュー完了
+- [ ] Phase 7 レビュー完了 ⚠️
 
 ---
 
@@ -351,7 +351,7 @@ Depended On By: None
   - 依存: 8.1
 
 ### Phase 8 チェックポイント
-- [ ] Phase 8 レビュー完了
+- [ ] Phase 8 レビュー完了 ⚠️
 
 ---
 
@@ -397,7 +397,7 @@ Depended On By: None
   - 依存: 9.8
 
 ### Phase 9 チェックポイント
-- [ ] Phase 9 レビュー完了
+- [ ] Phase 9 レビュー完了 ⚠️
 
 ---
 
@@ -432,7 +432,7 @@ Depended On By: None
   - 依存: 10.5
 
 ### Phase 10 チェックポイント
-- [ ] Phase 10 レビュー完了
+- [ ] Phase 10 レビュー完了 ⚠️
 
 ---
 
@@ -469,7 +469,7 @@ Depended On By: None
   - 依存: 11.7
 
 ### Phase 11 チェックポイント
-- [ ] Phase 11 レビュー完了
+- [ ] Phase 11 レビュー完了 ⚠️
 
 ---
 
@@ -500,7 +500,7 @@ Depended On By: None
   - 依存: 12.5
 
 ### Phase 12 チェックポイント
-- [ ] Phase 12 レビュー完了
+- [ ] Phase 12 レビュー完了 ⚠️
 
 ---
 
@@ -546,7 +546,7 @@ Depended On By: None
   - 依存: 13.7
 
 ### Phase 13 チェックポイント
-- [ ] Phase 13 レビュー完了
+- [ ] Phase 13 レビュー完了 ⚠️
 
 ---
 
@@ -595,7 +595,7 @@ Depended On By: None
   - 依存: 14.7
 
 ### Phase 14 チェックポイント
-- [ ] Phase 14 レビュー完了
+- [ ] Phase 14 レビュー完了 ⚠️
 
 ---
 
@@ -629,7 +629,7 @@ Depended On By: None
   - 目標: バックエンド80%以上、フロントエンド70%以上
 
 ### Phase 15 チェックポイント
-- [ ] Phase 15 レビュー完了
+- [ ] Phase 15 レビュー完了 ⚠️
 
 ---
 
@@ -650,7 +650,7 @@ Depended On By: None
   - 内容: Pull Request作成してCI実行確認
 
 ### Phase 16 チェックポイント
-- [ ] Phase 16 レビュー完了
+- [ ] Phase 16 レビュー完了 ⚠️
 
 ---
 
