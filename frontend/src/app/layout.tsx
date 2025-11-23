@@ -1,22 +1,20 @@
-// frontend/src/app/layout.tsx
-// ルートレイアウトコンポーネント
-//
-// 責務:
-// - アプリケーション全体のレイアウト定義
-// - グローバルスタイルの適用
-// - メタデータの設定
-// - プロバイダーのラップ
+import type { Metadata } from "next";
 
-import './globals.css'
+import "../styles/globals.css";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+import AppLayout from "@/components/layout/AppLayout";
+
+export const metadata: Metadata = {
+  title: "Enterprise Scheduler",
+  description: "社内リソース・予約管理のためのフロントエンド",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body className="min-h-screen bg-gray-50 text-gray-900">
+        <AppLayout>{children}</AppLayout>
+      </body>
     </html>
-  )
+  );
 }

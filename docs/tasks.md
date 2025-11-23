@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-24 21:00 JST
+最終更新: 2025-11-24 21:10 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -575,49 +575,49 @@ Depended On By: None
 ## Phase 14: フロントエンド - ページ (Frontend Pages)
 
 ### 実装タスク
-- [ ] 14.1 ルートレイアウト
+- [R] 14.1 ルートレイアウト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/layout.tsx`
   - 依存: 12.1, 12.3, 12.5
 
-- [ ] 14.2 トップページ
+- [R] 14.2 トップページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/page.tsx`
   - 依存: 14.1
 
-- [ ] 14.3 ログインページ
+- [R] 14.3 ログインページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/(auth)/login/page.tsx`
   - 依存: 10.1
 
-- [ ] 14.4 コールバックページ
+- [R] 14.4 コールバックページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/(auth)/callback/page.tsx`
   - 依存: 10.1
 
-- [ ] 14.5 ダッシュボードページ
+- [R] 14.5 ダッシュボードページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/dashboard/page.tsx`
   - 依存: 13.1, 10.3
 
-- [ ] 14.6 予定管理ページ
+- [R] 14.6 予定管理ページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/events/page.tsx`
   - 依存: 13.3, 13.5, 10.3
 
-- [ ] 14.7 リソース管理ページ
+- [R] 14.7 リソース管理ページ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/app/resources/page.tsx`
   - 依存: 10.5
 
 ### E2Eテスト
-- [ ] 14.8 E2Eテスト - 認証フロー
+- [R] 14.8 E2Eテスト - 認証フロー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/tests/e2e/auth.spec.ts`
   - 依存: 14.3, 14.4
 
-- [ ] 14.9 E2Eテスト - 予約作成フロー
+- [R] 14.9 E2Eテスト - 予約作成フロー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/tests/e2e/reservation.spec.ts`
   - 依存: 14.5, 14.6
 
-- [ ] 14.10 E2Eテスト - リソース検索フロー
+- [R] 14.10 E2Eテスト - リソース検索フロー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/tests/e2e/resource.spec.ts`
   - 依存: 14.7
 
 ### Phase 14 チェックポイント
-- [ ] Phase 14 レビュー完了 ⚠️
+- [R] Phase 14 レビュー完了 ⚠️ (AI Assistant - レビュー待ち 2025-11-24)
 
 ---
 
