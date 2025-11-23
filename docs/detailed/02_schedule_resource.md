@@ -153,6 +153,11 @@ stateDiagram-v2
     -   `AuditLogs` に `Action: CANCEL_WITH_PENALTY` を記録。
     -   ユーザーのペナルティスコアを再計算し、閾値を超えた場合は管理者通知または制限フラグを更新。
 
+### 6.3 スコア活用箇所 (API/UI連携)
+-   **ユーザープロファイルAPI:** `GET /users/{id}` で `penalty_score` と `penalty_score_expire_at` を返却し、管理画面で閲覧可能にする。
+-   **予約作成API:** `POST /reservations` のリクエスト処理時に `penalty_score >= 5` の場合は `requires_manager_approval=true` を強制セットし、レスポンスにも同フラグを含める。
+-   **UI表示:** 予約フォームにスコアが閾値に近い場合（例: 4以上）、「遅刻・キャンセルが多いため承認が必要になる可能性があります」といった警告バナーを表示する。
+
 ## 7. パフォーマンス・スケーラビリティ設計
 
 ### 7.1 読み取り負荷分散 (Read Replica Stickiness)
