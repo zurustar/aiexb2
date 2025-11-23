@@ -23,6 +23,7 @@ Depended On By: None
 - **非同期処理**:
     - APIサーバーは通知リクエストを **Redis Job Queue** (e.g., Asynq, Bull) にエンキューし、即座にレスポンスを返す。
     - **Idempotency:** ジョブIDは `ReservationID + JobType` で生成し、重複実行を防止する。
+    - **Retry Strategy:** 指数バックオフ (Exponential Backoff) とジッター (Jitter) を組み合わせ、最大3回のリトライを行う。
     - **Dead Letter Queue (DLQ):** 3回失敗したジョブはDLQへ送られ、手動調査対象とする。
     - バックグラウンドワーカーがキューからジョブを取り出し、実際の送信処理（SMTP, Webhook）を実行する。
 
@@ -76,6 +77,7 @@ Depended On By: None
 
 ### 4.1 ログフォーマット
 CloudWatch Logs / Datadog 等での解析を容易にするため、**JSON構造化ログ**を採用する。
+また、ログ出力時にPII（個人情報）が含まれる場合は、自動的にマスク処理を行う（例: メールアドレスの部分隠蔽）。
 
 ```json
 {
@@ -98,14 +100,32 @@ CloudWatch Logs / Datadog 等での解析を容易にするため、**JSON構造
 -   **DEBUG**: 開発・デバッグ用の詳細情報（SQLクエリ、内部変数値）。本番環境では原則出力しない。
 
 ### 4.3 可観測性 (Observability)
+-   **Logging:** ECS FireLens (Fluent Bit) を使用し、ログを集約・転送する。
 -   **Tracing:** OpenTelemetry を導入し、リクエストの分散トレーシングを行う。
 -   **Metrics:** Prometheus 等で以下の主要メトリクスを収集し、Grafana で可視化する。
     -   `http_request_duration_seconds`: APIレイテンシ (p95, p99)
     -   `reservation_success_total`: 予約作成成功数
     -   `job_failure_total`: バックグラウンドジョブ失敗数
 -   **Alerting:** SLO (Service Level Objective) 違反時にアラートを発報する（例: APIエラー率 > 0.5%）。
+-   **Cost Management:** 環境（dev/stg/prod）ごとにコストをタグ付けし、月次予算超過時にアラートを通知する。
 
-## 5. フロントエンド共通コンポーネント
+## 5. 可用性・災害復旧 (Availability & DR)
+-   **RPO (Recovery Point Objective):** 15分
+-   **RTO (Recovery Time Objective):** 1時間
+-   **Backup:** RDSの自動スナップショットに加え、PITR (Point-in-Time Recovery) を有効化する。
+-   **Redundancy:** クロスリージョンレプリケーション、またはIaCによるDR環境の迅速な立ち上げを準備する。
+-   **Drill:** 四半期ごとに復旧演習を実施する。
+
+## 6. 品質保証・CI/CD (Quality & CI/CD)
+-   **Quality Gates:**
+    -   Lint (Static Analysis) 通過
+    -   Unit/Integration Test Pass (Coverage > 80%)
+    -   Security Scan (SCA/Container) Pass
+-   **Deployment:**
+    -   DBマイグレーションは後方互換性を維持する。
+    -   Blue/Greenデプロイメント等により、無停止でのリリースを実現する。
+
+## 7. フロントエンド共通コンポーネント
 
 ### 5.1 デザインシステム
 -   **Color Palette**:
