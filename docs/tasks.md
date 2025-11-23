@@ -205,16 +205,16 @@ Depended On By: None
 ## Phase 5: バックエンド - サービス層 (Backend Service Layer)
 
 ### 実装タスク
-- [R] 5.1 認証サービス ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:15)
+- [x] 5.1 認証サービス ⚠️ (AI Assistant - 完了 2025-11-23 20:45)
   - ファイル: `backend/internal/service/auth_service.go`
   - 内容: OIDC認証フロー、トークン検証、セッション管理、権限チェック
   - 依存: 4.1, 3.9, 6.1
-  - コメント: OIDCクライアントを具体型で保持しているためテストがスキップされており、インターフェース受け取りへリファクタすると同時に、セッション/stateのマップをミューテックスや外部ストアで保護して多並列時のデータ競合を防ぐと良さそうです。
+  - コメント: OIDCクライアントをインターフェース経由で受け取るようにリファクタリングし、セッション/stateのマップをRWMutexで保護してスレッドセーフにしました。
 
-- [R] 5.2 認証サービステスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:15)
+- [x] 5.2 認証サービステスト ⚠️ (AI Assistant - 完了 2025-11-23 20:45)
   - ファイル: `backend/internal/service/auth_service_test.go`
   - 依存: 5.1
-  - コメント: 主要なテストがSkipのままなので、AuthServiceがインターフェースを受ける形に直した上で、state期限切れ・IDトークン検証失敗・RefreshToken交換失敗といった分岐をモックで網羅するテーブルテストを追加したいです。
+  - コメント: AuthServiceのリファクタリングに合わせてテストを更新し、スキップされていたテストを有効化しました。また、state期限切れ・IDトークン検証失敗・RefreshToken交換失敗といった分岐を網羅するテーブルテストを追加しました。
 
 - [x] 5.3 予約サービス ⚠️ (AI Assistant - 完了 2025-11-23 15:20)
   - ファイル: `backend/internal/service/reservation_service.go`

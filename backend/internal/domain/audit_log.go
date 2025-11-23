@@ -41,6 +41,16 @@ type AuditLog struct {
 	CreatedAt  time.Time
 }
 
+// AuditLogFilter は監査ログ検索用フィルタ
+type AuditLogFilter struct {
+	UserID     *uuid.UUID
+	Action     *AuditAction
+	TargetType *string
+	TargetID   *string
+	From       *time.Time
+	To         *time.Time
+}
+
 // GenerateSignature は監査ログの改ざん検知用署名を生成します
 // secretKey はサーバー設定から注入されることを想定
 func (a *AuditLog) GenerateSignature(secretKey string) (string, error) {

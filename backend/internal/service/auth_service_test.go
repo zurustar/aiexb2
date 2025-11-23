@@ -3,6 +3,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -64,16 +65,129 @@ func (m *MockOIDCClient) RefreshToken(ctx context.Context, refreshToken string) 
 }
 
 func TestAuthService_GetAuthURL(t *testing.T) {
-	// Note: AuthService expects *oidc.Client, but we're using a mock
-	// This test is conceptual - in practice, we'd need to refactor AuthService
-	// to accept an interface instead of a concrete type
-	t.Skip("Requires interface-based OIDC client")
+	mockOIDC := new(MockOIDCClient)
+	mockUserRepo := new(MockUserRepository)
+	mockAuditRepo := new(MockAuditLogRepository)
+
+	svc := service.NewAuthService(mockOIDC, mockUserRepo, mockAuditRepo)
+
+	state := "test-state"
+	expectedURL := "http://auth.example.com?state=" + state
+
+	mockOIDC.On("GetAuthURL", state).Return(expectedURL)
+
+	url := svc.GetAuthURL(state)
+
+	assert.Equal(t, expectedURL, url)
+	mockOIDC.AssertExpectations(t)
+}
+
+func TestAuthService_HandleCallback(t *testing.T) {
+	tests := []struct {
+		name          string
+		setupMocks    func(*MockOIDCClient, *MockUserRepository, *MockAuditLogRepository)
+		state         string
+		code          string
+		expectedError error
+	}{
+		{
+			name:  "Success - New User",
+			state: "valid-state",
+			code:  "valid-code",
+			setupMocks: func(mo *MockOIDCClient, mu *MockUserRepository, ma *MockAuditLogRepository) {
+				token := &oauth2.Token{
+					AccessToken:  "access-token",
+					RefreshToken: "refresh-token",
+					Expiry:       time.Now().Add(1 * time.Hour),
+				}
+				// Add extra field for id_token
+				token = token.WithExtra(map[string]interface{}{
+					"id_token": "raw-id-token",
+				})
+
+				mo.On("ExchangeCode", mock.Anything, "valid-code").Return(token, nil)
+				mo.On("VerifyIDToken", mock.Anything, "raw-id-token").Return(&coreosoidc.IDToken{}, nil)
+				mo.On("GetUserInfo", mock.Anything, mock.Anything).Return(&oidc.UserInfo{
+					Email: "new@example.com",
+					Name:  "New User",
+				}, nil)
+
+				mu.On("GetByEmail", mock.Anything, "new@example.com").Return(nil, errors.New("not found"))
+				mu.On("Create", mock.Anything, mock.MatchedBy(func(u *domain.User) bool {
+					return u.Email == "new@example.com" && u.Name == "New User"
+				})).Return(nil)
+
+				ma.On("Create", mock.Anything, mock.MatchedBy(func(l *domain.AuditLog) bool {
+					return l.Action == domain.AuditActionLogin && l.Details["email"] == "new@example.com"
+				})).Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name:  "Invalid State",
+			state: "invalid-state",
+			code:  "any-code",
+			setupMocks: func(mo *MockOIDCClient, mu *MockUserRepository, ma *MockAuditLogRepository) {
+				// No calls expected
+			},
+			expectedError: service.ErrInvalidState,
+		},
+		{
+			name:  "Exchange Code Error",
+			state: "valid-state",
+			code:  "invalid-code",
+			setupMocks: func(mo *MockOIDCClient, mu *MockUserRepository, ma *MockAuditLogRepository) {
+				mo.On("ExchangeCode", mock.Anything, "invalid-code").Return(nil, errors.New("exchange error"))
+			},
+			expectedError: errors.New("failed to exchange code: exchange error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockOIDC := new(MockOIDCClient)
+			mockUserRepo := new(MockUserRepository)
+			mockAuditRepo := new(MockAuditLogRepository)
+
+			svc := service.NewAuthService(mockOIDC, mockUserRepo, mockAuditRepo)
+
+			tt.setupMocks(mockOIDC, mockUserRepo, mockAuditRepo)
+
+			// Pre-set state for valid cases
+			if tt.state == "valid-state" {
+				// GetAuthURL expectation should be added in setupMocks or here if not present
+				// But since setupMocks is specific to each test case, we should probably add it there
+				// However, for simplicity, we can add it here if we know it's needed for setup
+				// But wait, if we add it here, it might conflict with strict mock expectations if not consumed?
+				// Actually, GetAuthURL consumes the call.
+
+				// Let's add expectation for GetAuthURL here just for the setup phase
+				mockOIDC.On("GetAuthURL", "valid-state").Return("http://auth.example.com?state=valid-state").Once()
+				svc.GetAuthURL("valid-state")
+			}
+
+			session, err := svc.HandleCallback(context.Background(), tt.code, tt.state)
+
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				if tt.expectedError == service.ErrInvalidState {
+					assert.Equal(t, tt.expectedError, err)
+				} else {
+					assert.Contains(t, err.Error(), tt.expectedError.Error())
+				}
+				assert.Nil(t, session)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, session)
+			}
+		})
+	}
 }
 
 func TestAuthService_CheckPermission(t *testing.T) {
 	// This test doesn't require OIDC client, so we can test it directly
 	// Note: This is a conceptual test
-	t.Skip("Requires interface-based OIDC client")
+	// t.Skip("Requires interface-based OIDC client") // Removed skip
 
 	// Test cases would include:
 	// - Admin can access Admin-required resources

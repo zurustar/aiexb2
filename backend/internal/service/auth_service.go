@@ -5,12 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/google/uuid"
 	"github.com/your-org/esms/internal/domain"
 	"github.com/your-org/esms/internal/repository"
-	"github.com/your-org/esms/pkg/oidc"
+	pkgoidc "github.com/your-org/esms/pkg/oidc"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -31,21 +34,35 @@ type Session struct {
 	ExpiresAt    time.Time
 }
 
+// OIDCClient はOIDCクライアントのインターフェース
+type OIDCClient interface {
+	GetAuthURL(state string) string
+	ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error)
+	VerifyIDToken(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
+	GetUserInfo(ctx context.Context, idToken *oidc.IDToken) (*pkgoidc.UserInfo, error)
+	ValidateToken(ctx context.Context, accessToken string) error
+	RefreshToken(ctx context.Context, refreshToken string) (*oauth2.Token, error)
+}
+
 // AuthService は認証に関するビジネスロジックを提供します
 type AuthService struct {
-	oidcClient   *oidc.Client
+	oidcClient   OIDCClient
 	userRepo     repository.UserRepository
 	auditLogRepo repository.AuditLogRepository
+	
 	// セッションストア（簡易実装: メモリ内）
 	// 本番環境ではRedisなどの永続化ストアを使用
 	sessions map[string]*Session
 	// state検証用（簡易実装）
 	states map[string]time.Time
+	
+	// マップへのアクセスを保護するためのMutex
+	mu sync.RWMutex
 }
 
 // NewAuthService は新しいAuthServiceを作成します
 func NewAuthService(
-	oidcClient *oidc.Client,
+	oidcClient OIDCClient,
 	userRepo repository.UserRepository,
 	auditLogRepo repository.AuditLogRepository,
 ) *AuthService {
@@ -60,6 +77,9 @@ func NewAuthService(
 
 // GetAuthURL は認証URLを生成します
 func (s *AuthService) GetAuthURL(state string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	// state を保存（CSRF対策）
 	s.states[state] = time.Now().Add(10 * time.Minute)
 	return s.oidcClient.GetAuthURL(state)
@@ -112,7 +132,10 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*
 		RefreshToken: token.RefreshToken,
 		ExpiresAt:    token.Expiry,
 	}
+	
+	s.mu.Lock()
 	s.sessions[sessionID] = session
+	s.mu.Unlock()
 
 	// 監査ログ記録
 	auditLog := &domain.AuditLog{
@@ -132,7 +155,7 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*
 }
 
 // syncUser はOIDCユーザー情報をDBに同期します
-func (s *AuthService) syncUser(ctx context.Context, userInfo *oidc.UserInfo) (*domain.User, error) {
+func (s *AuthService) syncUser(ctx context.Context, userInfo *pkgoidc.UserInfo) (*domain.User, error) {
 	// メールアドレスで既存ユーザーを検索
 	user, err := s.userRepo.GetByEmail(ctx, userInfo.Email)
 	if err == nil {
@@ -165,6 +188,9 @@ func (s *AuthService) syncUser(ctx context.Context, userInfo *oidc.UserInfo) (*d
 
 // validateState はstateを検証します
 func (s *AuthService) validateState(state string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	expiresAt, ok := s.states[state]
 	if !ok {
 		return false
@@ -183,14 +209,19 @@ func (s *AuthService) validateState(state string) bool {
 
 // GetSession はセッションIDからセッション情報を取得します
 func (s *AuthService) GetSession(sessionID string) (*Session, error) {
+	s.mu.RLock()
 	session, ok := s.sessions[sessionID]
+	s.mu.RUnlock()
+	
 	if !ok {
 		return nil, ErrSessionNotFound
 	}
 
 	// セッション有効期限チェック
 	if time.Now().After(session.ExpiresAt) {
+		s.mu.Lock()
 		delete(s.sessions, sessionID)
+		s.mu.Unlock()
 		return nil, ErrSessionNotFound
 	}
 
@@ -216,18 +247,22 @@ func (s *AuthService) RefreshSession(ctx context.Context, sessionID string) (*Se
 	}
 
 	// セッション情報を更新
+	s.mu.Lock()
 	session.AccessToken = newToken.AccessToken
 	session.ExpiresAt = newToken.Expiry
 	if newToken.RefreshToken != "" {
 		session.RefreshToken = newToken.RefreshToken
 	}
+	s.mu.Unlock()
 
 	return session, nil
 }
 
 // Logout はセッションを削除します
 func (s *AuthService) Logout(ctx context.Context, sessionID string, userID uuid.UUID) error {
+	s.mu.Lock()
 	delete(s.sessions, sessionID)
+	s.mu.Unlock()
 
 	// 監査ログ記録
 	auditLog := &domain.AuditLog{
