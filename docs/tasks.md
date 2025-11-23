@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 15:15 JST
+最終更新: 2025-11-23 15:30 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -214,30 +214,30 @@ Depended On By: None
   - ファイル: `backend/internal/service/auth_service_test.go`
   - 依存: 5.1
 
-- [R] 5.3 予約サービス ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:15)
+- [x] 5.3 予約サービス ⚠️ (AI Assistant - 完了 2025-11-23 15:20)
   - ファイル: `backend/internal/service/reservation_service.go`
   - 内容: 予約作成、排他制御、競合検出、代替案提案、キャンセルポリシー
   - 依存: 4.5, 4.3, 4.1, 3.11
 
-- [R] 5.4 予約サービステスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:15)
+- [x] 5.4 予約サービステスト ⚠️ (AI Assistant - 完了 2025-11-23 15:20)
   - ファイル: `backend/internal/service/reservation_service_test.go`
   - 依存: 5.3
 
-- [ ] 5.5 承認サービス
+- [R] 5.5 承認サービス (AI Assistant - レビュー待ち 2025-11-23 15:25)
   - ファイル: `backend/internal/service/approval_service.go`
   - 内容: 承認フロー管理、承認者判定、承認・却下処理
   - 依存: 4.5, 4.1, 3.11
 
-- [ ] 5.6 承認サービステスト
+- [R] 5.6 承認サービステスト (AI Assistant - レビュー待ち 2025-11-23 15:25)
   - ファイル: `backend/internal/service/approval_service_test.go`
   - 依存: 5.5
 
-- [ ] 5.7 通知サービス
+- [R] 5.7 通知サービス (AI Assistant - レビュー待ち 2025-11-23 15:30)
   - ファイル: `backend/internal/service/notification_service.go`
   - 内容: 通知テンプレート管理、メール送信、リトライ機構、重複送信防止
   - 依存: 4.1, 3.11
 
-- [ ] 5.8 通知サービステスト
+- [R] 5.8 通知サービステスト (AI Assistant - レビュー待ち 2025-11-23 15:30)
   - ファイル: `backend/internal/service/notification_service_test.go`
   - 依存: 5.7
 
