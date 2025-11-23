@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 15:30 JST
+最終更新: 2025-11-23 15:45 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -223,21 +223,21 @@ Depended On By: None
   - ファイル: `backend/internal/service/reservation_service_test.go`
   - 依存: 5.3
 
-- [R] 5.5 承認サービス (AI Assistant - レビュー待ち 2025-11-23 15:25)
+- [x] 5.5 承認サービス (AI Assistant - 完了 2025-11-23 15:35)
   - ファイル: `backend/internal/service/approval_service.go`
   - 内容: 承認フロー管理、承認者判定、承認・却下処理
   - 依存: 4.5, 4.1, 3.11
 
-- [R] 5.6 承認サービステスト (AI Assistant - レビュー待ち 2025-11-23 15:25)
+- [x] 5.6 承認サービステスト (AI Assistant - 完了 2025-11-23 15:35)
   - ファイル: `backend/internal/service/approval_service_test.go`
   - 依存: 5.5
 
-- [R] 5.7 通知サービス (AI Assistant - レビュー待ち 2025-11-23 15:30)
+- [x] 5.7 通知サービス (AI Assistant - 完了 2025-11-23 15:35)
   - ファイル: `backend/internal/service/notification_service.go`
   - 内容: 通知テンプレート管理、メール送信、リトライ機構、重複送信防止
   - 依存: 4.1, 3.11
 
-- [R] 5.8 通知サービステスト (AI Assistant - レビュー待ち 2025-11-23 15:30)
+- [x] 5.8 通知サービステスト (AI Assistant - 完了 2025-11-23 15:35)
   - ファイル: `backend/internal/service/notification_service_test.go`
   - 依存: 5.7
 
@@ -254,12 +254,12 @@ Depended On By: None
 ## Phase 6: バックエンド - OIDC連携 (Backend OIDC Integration)
 
 ### 実装タスク
-- [ ] 6.1 OIDCクライアント ⚠️
+- [R] 6.1 OIDCクライアント ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:45)
   - ファイル: `backend/pkg/oidc/client.go`
   - 内容: OIDC Discovery、Authorization Code Flow、トークン検証
   - 依存: 3.1
 
-- [ ] 6.2 OIDCクライアントテスト ⚠️
+- [R] 6.2 OIDCクライアントテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:45)
   - ファイル: `backend/pkg/oidc/client_test.go`
   - 依存: 6.1
 
