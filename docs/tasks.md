@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 17:10 JST
+最終更新: 2025-11-23 17:25 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -363,11 +363,11 @@ Depended On By: None
 ## Phase 9: フロントエンド - 型定義・ユーティリティ (Frontend Types & Utilities)
 
 ### 実装タスク
-- [ ] 9.1 API型定義
+- [/] 9.1 API型定義 (AI Assistant - 2025-11-23 17:25)
   - ファイル: `frontend/src/types/api.ts`
   - 内容: APIレスポンス型、エラーレスポンス型、ページネーション型
 
-- [ ] 9.2 ドメインモデル型
+- [/] 9.2 ドメインモデル型 (AI Assistant - 2025-11-23 17:25)
   - ファイル: `frontend/src/types/models.ts`
   - 内容: User型、Reservation型、Resource型、Role型、Status型
 
