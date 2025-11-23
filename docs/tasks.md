@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 23:28 JST
+最終更新: 2025-11-24 01:10 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -387,41 +387,41 @@ Depended On By: None
 ## Phase 9: フロントエンド - 型定義・ユーティリティ (Frontend Types & Utilities)
 
 ### 実装タスク
-- [/] 9.1 API型定義 (AI Assistant - 2025-11-23 17:25)
+- [R] 9.1 API型定義 (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/types/api.ts`
   - 内容: APIレスポンス型、エラーレスポンス型、ページネーション型
 
-- [/] 9.2 ドメインモデル型 (AI Assistant - 2025-11-23 17:25)
+- [R] 9.2 ドメインモデル型 (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/types/models.ts`
   - 内容: User型、Reservation型、Resource型、Role型、Status型
 
-- [ ] 9.3 型定義エクスポート
+- [R] 9.3 型定義エクスポート (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/types/index.ts`
   - 依存: 9.1, 9.2
 
-- [ ] 9.4 APIクライアント
+- [R] 9.4 APIクライアント (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/api-client.ts`
   - 内容: Fetch APIラッパー、認証ヘッダー、エラーハンドリング
   - 依存: 9.1
 
-- [ ] 9.5 APIクライアントテスト
+- [R] 9.5 APIクライアントテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/api-client.test.ts`
   - 依存: 9.4
 
-- [ ] 9.6 認証ヘルパー
+- [R] 9.6 認証ヘルパー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/auth.ts`
   - 内容: セッション管理、ログイン/ログアウト、権限チェック
   - 依存: 9.4
 
-- [ ] 9.7 認証ヘルパーテスト
+- [R] 9.7 認証ヘルパーテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/auth.test.ts`
   - 依存: 9.6
 
-- [ ] 9.8 ユーティリティ
+- [R] 9.8 ユーティリティ (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/utils.ts`
   - 内容: 日時フォーマット、タイムゾーン変換、バリデーションヘルパー
 
-- [ ] 9.9 ユーティリティテスト
+- [R] 9.9 ユーティリティテスト (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/utils.test.ts`
   - 依存: 9.8
 
