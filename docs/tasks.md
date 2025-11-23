@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 17:25 JST
+最終更新: 2025-11-23 20:20 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -209,10 +209,12 @@ Depended On By: None
   - ファイル: `backend/internal/service/auth_service.go`
   - 内容: OIDC認証フロー、トークン検証、セッション管理、権限チェック
   - 依存: 4.1, 3.9, 6.1
+  - コメント: OIDCクライアントを具体型で保持しているためテストがスキップされており、インターフェース受け取りへリファクタすると同時に、セッション/stateのマップをミューテックスや外部ストアで保護して多並列時のデータ競合を防ぐと良さそうです。
 
 - [R] 5.2 認証サービステスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:15)
   - ファイル: `backend/internal/service/auth_service_test.go`
   - 依存: 5.1
+  - コメント: 主要なテストがSkipのままなので、AuthServiceがインターフェースを受ける形に直した上で、state期限切れ・IDトークン検証失敗・RefreshToken交換失敗といった分岐をモックで網羅するテーブルテストを追加したいです。
 
 - [x] 5.3 予約サービス ⚠️ (AI Assistant - 完了 2025-11-23 15:20)
   - ファイル: `backend/internal/service/reservation_service.go`
@@ -245,6 +247,7 @@ Depended On By: None
 - [R] 5.9 サービス層統合テスト (AI Assistant - レビュー待ち 2025-11-23 16:20)
   - ファイル: `backend/tests/integration/service_test.go`
   - 依存: 5.1, 5.3, 5.5, 5.7
+  - コメント: 正常系のみのフローなので、ダブルブッキング時のCreateReservationエラーや承認者不在時の例外ルートを追加し、監査ログ・トランザクション巻き戻しを確認するケースを増やすと回帰不具合に強くなりそうです。
 
 ### Phase 5 チェックポイント
 - [ ] Phase 5 レビュー完了 ⚠️
@@ -258,10 +261,12 @@ Depended On By: None
   - ファイル: `backend/pkg/oidc/client.go`
   - 内容: OIDC Discovery、Authorization Code Flow、トークン検証
   - 依存: 3.1
+  - コメント: GetAuthURLがstateのみでPKCEコードチャレンジやnonceを発行しておらず、アクセストークン検証も実質ノーガードなため、PKCE/nonce付与とイントロスペクション・タイムアウト付きHTTPクライアント対応を検討したいです。
 
 - [R] 6.2 OIDCクライアントテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:50)
   - ファイル: `backend/pkg/oidc/client_test.go`
   - 依存: 6.1
+  - コメント: こちらも全てSkipなので、テスト用のスタブOIDCプロバイダ（httptestサーバー）を立ててDiscovery/IDトークン検証/at_hash検証の正負ケースを動かすインテグレーション寄りのテストを用意すると安心です。
 
 ### Phase 6 チェックポイント
 - [ ] Phase 6 レビュー完了 ⚠️
@@ -275,15 +280,18 @@ Depended On By: None
   - ファイル: `backend/internal/handler/middleware.go`
   - 内容: 認証、CSRF対策、CORS、ロギング、レート制限
   - 依存: 5.1, 3.3
+  - コメント: CORSで`*`とCredentialsを併用している点と、BearerトークンをそのままセッションIDとして扱い検証していない点が懸念なので、許可オリジンを設定化しAuthService経由でトークン検証する形へ寄せると良いです。
 
 - [R] 7.2 ミドルウェアテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:30)
   - ファイル: `backend/internal/handler/middleware_test.go`
   - 依存: 7.1
+  - コメント: 認証・レート制限・CSRFそれぞれの正負ケースをhttptestでカバーするテーブル駆動テストが不足しているので、モックAuthServiceを用意して401/403や429のレスポンスを検証するテストを追加したいです。
 
 - [R] 7.3 認証ハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:40)
   - ファイル: `backend/internal/handler/auth_handler.go`
   - 内容: /api/v1/auth/* エンドポイント
   - 依存: 5.1, 7.1
+  - コメント: コールバックのエラー時レスポンスやCookie属性（Secure/SameSite）設定の確認がないため、異常系のHTTPステータスとヘッダー付与を明示し、セッション固定化防止のSet-Cookieオプションを見直すと良さそうです。
 
 - [x] 7.4 認証ハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
   - ファイル: `backend/internal/handler/auth_handler_test.go`
@@ -293,6 +301,7 @@ Depended On By: None
   - ファイル: `backend/internal/handler/reservation_handler.go`
   - 内容: /api/v1/events/* エンドポイント、統一レスポンス形式
   - 依存: 5.3, 7.1, 3.5
+  - コメント: バリデーションエラーと競合エラーのレスポンス形式が統一されているか確認できないので、エラーボディのスキーマを共通化し、タイムゾーン未指定や重複予約時のHTTPコードを明確に分けるとクライアント実装が安定します。
 
 - [x] 7.6 予約ハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
   - ファイル: `backend/internal/handler/reservation_handler_test.go`
@@ -302,6 +311,7 @@ Depended On By: None
   - ファイル: `backend/internal/handler/resource_handler.go`
   - 内容: /api/v1/resources/* エンドポイント
   - 依存: 4.3, 7.1
+  - コメント: GET/LISTのキャッシュ制御やIsActiveフィルタの扱いが明記されていないため、クエリパラメータの検証と304/ETag対応、非活性リソースの扱いを整理すると運用性が上がりそうです。
 
 - [x] 7.8 リソースハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
   - ファイル: `backend/internal/handler/resource_handler_test.go`
@@ -311,6 +321,7 @@ Depended On By: None
   - ファイル: `backend/internal/handler/user_handler.go`
   - 内容: /api/v1/users/* エンドポイント
   - 依存: 4.1, 7.1
+  - コメント: 管理者以外のロールがアクセスした場合の403分岐や自己参照更新の制御が見当たらないので、RequireRoleとの併用を含めたロール別のアクセス制御テストを追加したいです。
 
 - [x] 7.10 ユーザーハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
   - ファイル: `backend/internal/handler/user_handler_test.go`
@@ -320,14 +331,17 @@ Depended On By: None
   - ファイル: `backend/internal/handler/router.go`
   - 内容: ルート設定、ミドルウェアチェーン
   - 依存: 7.1, 7.3, 7.5, 7.7, 7.9
+  - コメント: 404/405ハンドリングやヘルスチェック等の公開エンドポイントへのミドルウェア適用範囲が明確でないため、デフォルトハンドラーと公開ルートのチェーンを分けてテストを追加すると安全です。
 
 ### 統合テスト
 - [R] 7.12 ハンドラー層統合テスト (AI Assistant - レビュー待ち 2025-11-23 16:55)
   - ファイル: `backend/tests/integration/handler_test.go`
   - 依存: 7.3, 7.5, 7.7, 7.9
+  - コメント: 成功ケース中心なので、認証失敗・権限不足・入力バリデーション失敗のHTTPレスポンス確認を追加し、JSONレスポンスのエラー形式も合わせて検証すると良いです。
 
 ### Phase 7 チェックポイント　
 - [R] Phase 7 実装完了 (AI Assistant - 2025-11-23 16:50) ⚠️
+  - コメント: 7.x系のレビュー指摘を反映後にフェーズ完了へ遷移できるよう、ハンドラー/ミドルウェアの負のケーステスト追加を完了チェックリストに追記すると進行管理しやすいです。
 
 ---
 
@@ -338,11 +352,13 @@ Depended On By: None
   - ファイル: `backend/cmd/api/main.go`
   - 内容: 設定読み込み、DB/Redis初期化、ルーティング、グレースフルシャットダウン
   - 依存: 3.1, 7.1, 7.3, 7.5, 7.7, 7.9
+  - コメント: shutdownシグナルハンドリング時のタイムアウトとサーバー起動前の依存サービスヘルスチェック（DB/Redis接続検証）が無いので、コンテキストタイムアウトとヘルスチェックの追加を検討ください。
 
 - [R] 8.2 バックグラウンドワーカー (AI Assistant - レビュー待ち 2025-11-23 17:10)
   - ファイル: `backend/cmd/worker/main.go`
   - 内容: ジョブキュー接続、各種バックグラウンドジョブ
   - 依存: 3.11, 5.7, 4.5
+  - コメント: ワーカー起動時のジョブキュー接続リトライやシャットダウン時のジョブ中断処理が見当たらないため、コンテキストキャンセル対応とキュー接続のバックオフ・健全性チェックを追加すると耐障害性が高まります。
 
 ### 統合テスト
 - [x] 8.3 APIサーバー起動テスト (AI Assistant - 完了 2025-11-23 17:20)
