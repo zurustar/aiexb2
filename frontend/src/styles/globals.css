@@ -1,0 +1,16 @@
+/* frontend/src/styles/globals.css */
+/* グローバルスタイル定義 */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* カスタムCSS変数 */
+:root {
+  --primary: #0052CC;
+  --success: #36B37E;
+  --warning: #FFAB00;
+  --error: #FF5630;
+}
+
+/* TODO: デザインシステムに基づいたスタイル定義 */

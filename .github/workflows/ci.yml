@@ -1,0 +1,33 @@
+# .github/workflows/ci.yml
+# CI/CDパイプライン - テスト・ビルド
+#
+# トリガー:
+# - Pull Request作成時
+# - mainブランチへのpush
+#
+# ジョブ:
+# - Backend: Go test, lint
+# - Frontend: npm test, lint, build
+# - Database: マイグレーションテスト
+
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # TODO: 実装
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # TODO: Go test実行
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # TODO: npm test実行
