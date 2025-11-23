@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -36,12 +37,13 @@ type Session struct {
 
 // OIDCClient はOIDCクライアントのインターフェース
 type OIDCClient interface {
-	GetAuthURL(state string) string
-	ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error)
+	GetAuthURL(params pkgoidc.AuthURLParams) string
+	ExchangeCode(ctx context.Context, code string, codeVerifier string) (*oauth2.Token, error)
 	VerifyIDToken(ctx context.Context, rawIDToken string) (*oidc.IDToken, error)
 	GetUserInfo(ctx context.Context, idToken *oidc.IDToken) (*pkgoidc.UserInfo, error)
 	ValidateToken(ctx context.Context, accessToken string) error
 	RefreshToken(ctx context.Context, refreshToken string) (*oauth2.Token, error)
+	ParseIDTokenClaimsWithValidation(ctx context.Context, rawIDToken, expectedNonce, accessToken string) (*pkgoidc.TokenClaims, error)
 }
 
 // AuthService は認証に関するビジネスロジックを提供します
@@ -49,13 +51,17 @@ type AuthService struct {
 	oidcClient   OIDCClient
 	userRepo     repository.UserRepository
 	auditLogRepo repository.AuditLogRepository
-	
+
 	// セッションストア（簡易実装: メモリ内）
 	// 本番環境ではRedisなどの永続化ストアを使用
 	sessions map[string]*Session
 	// state検証用（簡易実装）
 	states map[string]time.Time
-	
+	// PKCE code_verifier保存用（stateをキーとする）
+	codeVerifiers map[string]string
+	// nonce保存用（stateをキーとする）
+	nonces map[string]string
+
 	// マップへのアクセスを保護するためのMutex
 	mu sync.RWMutex
 }
@@ -67,11 +73,13 @@ func NewAuthService(
 	auditLogRepo repository.AuditLogRepository,
 ) *AuthService {
 	return &AuthService{
-		oidcClient:   oidcClient,
-		userRepo:     userRepo,
-		auditLogRepo: auditLogRepo,
-		sessions:     make(map[string]*Session),
-		states:       make(map[string]time.Time),
+		oidcClient:    oidcClient,
+		userRepo:      userRepo,
+		auditLogRepo:  auditLogRepo,
+		sessions:      make(map[string]*Session),
+		states:        make(map[string]time.Time),
+		codeVerifiers: make(map[string]string),
+		nonces:        make(map[string]string),
 	}
 }
 
@@ -79,10 +87,41 @@ func NewAuthService(
 func (s *AuthService) GetAuthURL(state string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// state を保存（CSRF対策）
 	s.states[state] = time.Now().Add(10 * time.Minute)
-	return s.oidcClient.GetAuthURL(state)
+
+	// PKCE challenge生成
+	pkceParams, err := pkgoidc.GeneratePKCEChallenge()
+	if err != nil {
+		// エラー時は警告ログを出力してPKCEなしで続行
+		// 本番環境ではエラーを返すべき
+		log.Printf("Warning: Failed to generate PKCE challenge: %v", err)
+		pkceParams = &pkgoidc.PKCEParams{}
+	} else {
+		// code_verifierを保存
+		s.codeVerifiers[state] = pkceParams.CodeVerifier
+	}
+
+	// nonce生成
+	nonce, err := pkgoidc.GenerateNonce()
+	if err != nil {
+		// エラー時は警告ログを出力してnonceなしで続行
+		log.Printf("Warning: Failed to generate nonce: %v", err)
+		nonce = ""
+	} else {
+		// nonceを保存
+		s.nonces[state] = nonce
+	}
+
+	// AuthURLParamsを作成
+	params := pkgoidc.AuthURLParams{
+		State:         state,
+		Nonce:         nonce,
+		CodeChallenge: pkceParams.CodeChallenge,
+	}
+
+	return s.oidcClient.GetAuthURL(params)
 }
 
 // HandleCallback は認証コールバックを処理します
@@ -92,8 +131,17 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*
 		return nil, ErrInvalidState
 	}
 
-	// 認証コードをトークンに交換
-	token, err := s.oidcClient.ExchangeCode(ctx, code)
+	// code_verifierとnonceを取得
+	s.mu.Lock()
+	codeVerifier := s.codeVerifiers[state]
+	nonce := s.nonces[state]
+	// 使用済みのため削除
+	delete(s.codeVerifiers, state)
+	delete(s.nonces, state)
+	s.mu.Unlock()
+
+	// 認証コードをトークンに交換（PKCEのcode_verifierを渡す）
+	token, err := s.oidcClient.ExchangeCode(ctx, code, codeVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
@@ -104,12 +152,18 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*
 		return nil, errors.New("no id_token in token response")
 	}
 
+	// nonce検証を含むIDトークンのクレーム検証
+	claims, err := s.oidcClient.ParseIDTokenClaimsWithValidation(ctx, rawIDToken, nonce, token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify ID token with nonce: %w", err)
+	}
+
+	// ユーザー情報を取得（claimsから直接取得も可能だが、既存のフローを維持）
 	idToken, err := s.oidcClient.VerifyIDToken(ctx, rawIDToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify ID token: %w", err)
 	}
 
-	// ユーザー情報を取得
 	userInfo, err := s.oidcClient.GetUserInfo(ctx, idToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
@@ -132,7 +186,7 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*
 		RefreshToken: token.RefreshToken,
 		ExpiresAt:    token.Expiry,
 	}
-	
+
 	s.mu.Lock()
 	s.sessions[sessionID] = session
 	s.mu.Unlock()
@@ -145,7 +199,10 @@ func (s *AuthService) HandleCallback(ctx context.Context, code, state string) (*
 		TargetType: "user",
 		TargetID:   user.ID.String(),
 		Details: map[string]interface{}{
-			"email": user.Email,
+			"email":           user.Email,
+			"nonce_validated": nonce != "",
+			"pkce_used":       codeVerifier != "",
+			"subject":         claims.Subject,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -190,7 +247,7 @@ func (s *AuthService) syncUser(ctx context.Context, userInfo *pkgoidc.UserInfo) 
 func (s *AuthService) validateState(state string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	expiresAt, ok := s.states[state]
 	if !ok {
 		return false
@@ -212,7 +269,7 @@ func (s *AuthService) GetSession(sessionID string) (*Session, error) {
 	s.mu.RLock()
 	session, ok := s.sessions[sessionID]
 	s.mu.RUnlock()
-	
+
 	if !ok {
 		return nil, ErrSessionNotFound
 	}

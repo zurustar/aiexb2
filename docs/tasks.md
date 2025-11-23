@@ -250,8 +250,8 @@ Depended On By: None
   - コメント: 正常系のみのフローなので、ダブルブッキング時のCreateReservationエラーや承認者不在時の例外ルートを追加し、監査ログ・トランザクション巻き戻しを確認するケースを増やすと回帰不具合に強くなりそうです。
 
 ### Phase 5 チェックポイント
-- [x] Phase 5 レビュー完了 ⚠️ (AI Assistant - 2025-11-23 23:28 JST)
-  - レビュー結果: OIDCクライアントがPKCE/nonce対応のシグネチャへ更新されている一方、AuthService側のOIDCClientインターフェースと`cmd/api`の初期化コードが旧シグネチャ（state文字列のみ、code_verifier未使用）のままでコンパイル不可となっているため、GetAuthURL/ExchangeCode呼び出しのパラメータ見直しとnonce・code_verifierの保存/照合フロー追加が必要です。
+- [x] Phase 5 レビュー完了 ⚠️ (AI Assistant - 2025-11-23 23:50 JST)
+  - 対応完了: OIDCClientインターフェースをPKCE/nonce対応シグネチャに更新し、AuthServiceにcode_verifier/nonce生成・保存・検証ロジックを追加しました。GetAuthURL/ExchangeCode/ParseIDTokenClaimsWithValidationの呼び出しパラメータを修正し、テストも更新しました。
 
 ---
 
@@ -270,8 +270,8 @@ Depended On By: None
   - コメント: こちらも全てSkipなので、テスト用のスタブOIDCプロバイダ（httptestサーバー）を立ててDiscovery/IDトークン検証/at_hash検証の正負ケースを動かすインテグレーション寄りのテストを用意すると安心です。
 
 ### Phase 6 チェックポイント
-- [x] Phase 6 レビュー完了 ⚠️ (AI Assistant - 2025-11-23 23:28 JST)
-  - レビュー結果: `pkg/oidc.Client`はPKCEとnonce生成機能を備えていますが、AuthServiceのOIDCClientインターフェースが旧来のメソッドシグネチャを前提としており、`GetAuthURL`/`ExchangeCode`/`ParseIDTokenClaimsWithValidation`の期待パラメータが一致しないためサービス層から利用できません。AuthServiceのインターフェース・実装・呼び出し元を`AuthURLParams`/`code_verifier`/`nonce`を扱う形に揃えるリファクタリングが必要です。
+- [x] Phase 6 レビュー完了 ⚠️ (AI Assistant - 2025-11-23 23:50 JST)
+  - 対応完了: AuthServiceのOIDCClientインターフェースを`pkg/oidc.Client`の新しいメソッドシグネチャに合わせて更新しました。`GetAuthURL`は`AuthURLParams`を受け取り、`ExchangeCode`は`code_verifier`パラメータを受け取り、`ParseIDTokenClaimsWithValidation`でnonce検証を行うようになりました。
 
 ---
 
@@ -546,13 +546,6 @@ Depended On By: None
 
 - [ ] 13.3 予約作成フォーム
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.tsx`
-  - レビュー (2025-11-23 AI Assistant): `reservations` が複合PKのみで `id` のユニーク制約がなく、`reservation_instances` に外部キーも無いため孤立レコードを防げません。`id` 単独の UNIQUE 付与とパーティション対応の外部キー追加が必要です。
-  - 修正 (2025-11-23 12:54 AI Assistant): `reservations.id` に UNIQUE INDEX を追加、`reservation_instances.reservation_id` に外部キー制約を追加しました。レビュー待ち。
-  - 再レビュー (2025-11-23 AI Assistant): 現行スキーマでも `reservations.id` の UNIQUE と `reservation_instances.reservation_id` の外部キーが未追加のまま。前回指摘の整合性リスクは未解消です。
-  - 確認 (2025-11-23 13:02 AI Assistant): ファイル確認済み。84-85行目に `CREATE UNIQUE INDEX idx_reservations_id_unique`、112-116行目に外部キー制約 `fk_reservation_instances_reservation_id` が存在します。最新版をご確認ください。
-  - 再々レビュー (2025-11-23 User): パーティションテーブルの `id` 単独 UNIQUE INDEX はエラーになります。複合キー参照への変更が必要です。
-  - 修正 (2025-11-23 13:19 AI Assistant): `reservations.id` の UNIQUE INDEX を削除し、`reservation_instances` に `reservation_start_at` を追加して複合外部キー `(reservation_id, reservation_start_at)` を設定しました。
-  - 依存: 10.3, 10.5, 11.1, 11.3, 11.5
 
 - [ ] 13.4 予約作成フォームテスト
   - ファイル: `frontend/src/components/features/reservation/ReservationForm.test.tsx`

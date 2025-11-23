@@ -22,13 +22,13 @@ type MockOIDCClient struct {
 	mock.Mock
 }
 
-func (m *MockOIDCClient) GetAuthURL(state string) string {
-	args := m.Called(state)
+func (m *MockOIDCClient) GetAuthURL(params oidc.AuthURLParams) string {
+	args := m.Called(params)
 	return args.String(0)
 }
 
-func (m *MockOIDCClient) ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error) {
-	args := m.Called(ctx, code)
+func (m *MockOIDCClient) ExchangeCode(ctx context.Context, code string, codeVerifier string) (*oauth2.Token, error) {
+	args := m.Called(ctx, code, codeVerifier)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -64,6 +64,14 @@ func (m *MockOIDCClient) RefreshToken(ctx context.Context, refreshToken string) 
 	return args.Get(0).(*oauth2.Token), args.Error(1)
 }
 
+func (m *MockOIDCClient) ParseIDTokenClaimsWithValidation(ctx context.Context, rawIDToken, expectedNonce, accessToken string) (*oidc.TokenClaims, error) {
+	args := m.Called(ctx, rawIDToken, expectedNonce, accessToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*oidc.TokenClaims), args.Error(1)
+}
+
 func TestAuthService_GetAuthURL(t *testing.T) {
 	mockOIDC := new(MockOIDCClient)
 	mockUserRepo := new(MockUserRepository)
@@ -74,7 +82,10 @@ func TestAuthService_GetAuthURL(t *testing.T) {
 	state := "test-state"
 	expectedURL := "http://auth.example.com?state=" + state
 
-	mockOIDC.On("GetAuthURL", state).Return(expectedURL)
+	// Mock expects AuthURLParams, not just state string
+	mockOIDC.On("GetAuthURL", mock.MatchedBy(func(params oidc.AuthURLParams) bool {
+		return params.State == state && params.Nonce != "" && params.CodeChallenge != ""
+	})).Return(expectedURL)
 
 	url := svc.GetAuthURL(state)
 
@@ -105,7 +116,15 @@ func TestAuthService_HandleCallback(t *testing.T) {
 					"id_token": "raw-id-token",
 				})
 
-				mo.On("ExchangeCode", mock.Anything, "valid-code").Return(token, nil)
+				// ExchangeCode now expects code_verifier parameter
+				mo.On("ExchangeCode", mock.Anything, "valid-code", mock.AnythingOfType("string")).Return(token, nil)
+
+				// ParseIDTokenClaimsWithValidation is called with nonce and access token
+				mo.On("ParseIDTokenClaimsWithValidation", mock.Anything, "raw-id-token", mock.AnythingOfType("string"), "access-token").Return(&oidc.TokenClaims{
+					Subject: "user-sub-123",
+					Email:   "new@example.com",
+				}, nil)
+
 				mo.On("VerifyIDToken", mock.Anything, "raw-id-token").Return(&coreosoidc.IDToken{}, nil)
 				mo.On("GetUserInfo", mock.Anything, mock.Anything).Return(&oidc.UserInfo{
 					Email: "new@example.com",
@@ -137,7 +156,7 @@ func TestAuthService_HandleCallback(t *testing.T) {
 			state: "valid-state",
 			code:  "invalid-code",
 			setupMocks: func(mo *MockOIDCClient, mu *MockUserRepository, ma *MockAuditLogRepository) {
-				mo.On("ExchangeCode", mock.Anything, "invalid-code").Return(nil, errors.New("exchange error"))
+				mo.On("ExchangeCode", mock.Anything, "invalid-code", mock.AnythingOfType("string")).Return(nil, errors.New("exchange error"))
 			},
 			expectedError: errors.New("failed to exchange code: exchange error"),
 		},
@@ -155,14 +174,10 @@ func TestAuthService_HandleCallback(t *testing.T) {
 
 			// Pre-set state for valid cases
 			if tt.state == "valid-state" {
-				// GetAuthURL expectation should be added in setupMocks or here if not present
-				// But since setupMocks is specific to each test case, we should probably add it there
-				// However, for simplicity, we can add it here if we know it's needed for setup
-				// But wait, if we add it here, it might conflict with strict mock expectations if not consumed?
-				// Actually, GetAuthURL consumes the call.
-
-				// Let's add expectation for GetAuthURL here just for the setup phase
-				mockOIDC.On("GetAuthURL", "valid-state").Return("http://auth.example.com?state=valid-state").Once()
+				// GetAuthURL expectation with AuthURLParams
+				mockOIDC.On("GetAuthURL", mock.MatchedBy(func(params oidc.AuthURLParams) bool {
+					return params.State == "valid-state"
+				})).Return("http://auth.example.com?state=valid-state").Once()
 				svc.GetAuthURL("valid-state")
 			}
 
