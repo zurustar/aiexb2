@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 13:19 JST
+最終更新: 2025-11-23 13:25 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -22,12 +22,12 @@ Depended On By: None
   - ファイル: `database/init/01_create_extensions.sql`
   - 内容: PostgreSQL拡張機能の有効化（UUID、pgvector等）
 
-- [R] 1.2 初期スキーママイグレーション (Up) ⚠️ (AI Assistant - 完了・レビュー承認 2025-11-23 12:39)
+- [x] 1.2 初期スキーママイグレーション (Up) ⚠️ (AI Assistant - 完了・レビュー承認 2025-11-23 13:24)
   - ファイル: `backend/migrations/000001_init_schema.up.sql`
   - 内容: 全テーブル定義、パーティション設定、基本インデックス
   - 依存: 1.1
 
-- [R] 1.3 初期スキーママイグレーション (Down) (AI Assistant - 完了 2025-11-23 12:42)
+- [x] 1.3 初期スキーママイグレーション (Down) (AI Assistant - 完了 2025-11-23 13:24)
   - ファイル: `backend/migrations/000001_init_schema.down.sql`
   - 内容: 全テーブルのDROP処理
   - 依存: 1.2
@@ -50,7 +50,7 @@ Depended On By: None
 ## Phase 2: バックエンド - ドメインモデル (Backend Domain Models)
 
 ### 実装タスク
-- [/] 2.1 ユーザードメイン (AI Assistant - 2025-11-23 13:16)
+- [x] 2.1 ユーザードメイン (AI Assistant - 完了 2025-11-23 13:25)
   - ファイル: `backend/internal/domain/user.go`
   - 内容: User構造体、Role定数、権限チェックメソッド
 
