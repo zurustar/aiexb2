@@ -60,6 +60,23 @@ make clean     # クリーンアップ
 
 詳細は `make help` を参照してください。
 
+## テスト計画（開発環境）
+
+開発用の Docker Compose 環境を前提に、以下のコマンドで品質チェックを実施します。テストデータは `make setup` または `make seed` で投入される `database/seed/*.sql`（ユーザー・会議室など）を利用します。
+
+- **コード整形/静的解析**
+  - Backend Format: `docker-compose run --rm backend gofmt -w .`
+  - Backend Lint: `docker-compose run --rm backend go vet ./...`
+  - Frontend Lint: `docker-compose run --rm frontend npm run lint`
+- **ユニット/統合テスト**
+  - Backend Unit/Integration: `docker-compose run --rm backend go test ./... -v`
+  - Frontend Unit: `docker-compose run --rm frontend npm test`
+- **E2E テスト**（Playwright 追加時想定）
+  - `docker-compose run --rm frontend npx playwright test`
+  - 前提: `make up` でフロント/バックエンドを起動し、シードデータ投入済みであること。
+
+> メモ: E2E は Playwright セットアップ後に有効化を想定しています。追加のモック/フィクスチャが必要な場合は `frontend/e2e` 配下に配置してください。
+
 ## ディレクトリ構成
 
 ```
