@@ -3,11 +3,13 @@ package oidc
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -59,8 +61,21 @@ func NewClient(ctx context.Context, cfg *Config) (*Client, error) {
 		return nil, fmt.Errorf("%w: issuer URL and client ID are required", ErrInvalidConfig)
 	}
 
+	// タイムアウト付きHTTPクライアントを作成
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+		},
+	}
+
+	// HTTPクライアントを使用するコンテキストを作成
+	ctxWithClient := context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+
 	// OIDC Discovery
-	provider, err := oidc.NewProvider(ctx, cfg.IssuerURL)
+	provider, err := oidc.NewProvider(ctxWithClient, cfg.IssuerURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
 	}
@@ -87,14 +102,79 @@ func NewClient(ctx context.Context, cfg *Config) (*Client, error) {
 	}, nil
 }
 
-// GetAuthURL は認証URLを生成します
-func (c *Client) GetAuthURL(state string) string {
-	return c.oauth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+// PKCEParams はPKCEパラメータを保持します
+type PKCEParams struct {
+	CodeVerifier  string
+	CodeChallenge string
 }
 
-// ExchangeCode は認証コードをトークンに交換します
-func (c *Client) ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error) {
-	token, err := c.oauth2Config.Exchange(ctx, code)
+// GeneratePKCEChallenge はPKCEのcode_verifierとcode_challengeを生成します
+func GeneratePKCEChallenge() (*PKCEParams, error) {
+	// code_verifier: 43-128文字のランダム文字列
+	verifier := make([]byte, 32)
+	if _, err := rand.Read(verifier); err != nil {
+		return nil, fmt.Errorf("failed to generate code verifier: %w", err)
+	}
+	codeVerifier := base64.RawURLEncoding.EncodeToString(verifier)
+
+	// code_challenge: SHA256(code_verifier)のBase64 URL エンコード
+	hash := sha256.Sum256([]byte(codeVerifier))
+	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
+
+	return &PKCEParams{
+		CodeVerifier:  codeVerifier,
+		CodeChallenge: codeChallenge,
+	}, nil
+}
+
+// GenerateNonce はセキュアなランダムnonceを生成します
+func GenerateNonce() (string, error) {
+	nonce := make([]byte, 32)
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("failed to generate nonce: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(nonce), nil
+}
+
+// AuthURLParams は認証URL生成のパラメータを保持します
+type AuthURLParams struct {
+	State         string
+	Nonce         string
+	CodeChallenge string // PKCE code_challenge (オプション)
+}
+
+// GetAuthURL は認証URLを生成します（PKCE・nonce対応）
+func (c *Client) GetAuthURL(params AuthURLParams) string {
+	opts := []oauth2.AuthCodeOption{
+		oauth2.AccessTypeOffline,
+	}
+
+	// nonceを追加
+	if params.Nonce != "" {
+		opts = append(opts, oauth2.SetAuthURLParam("nonce", params.Nonce))
+	}
+
+	// PKCEを追加
+	if params.CodeChallenge != "" {
+		opts = append(opts,
+			oauth2.SetAuthURLParam("code_challenge", params.CodeChallenge),
+			oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+		)
+	}
+
+	return c.oauth2Config.AuthCodeURL(params.State, opts...)
+}
+
+// ExchangeCode は認証コードをトークンに交換します（PKCE対応）
+func (c *Client) ExchangeCode(ctx context.Context, code string, codeVerifier string) (*oauth2.Token, error) {
+	opts := []oauth2.AuthCodeOption{}
+
+	// PKCEのcode_verifierを追加
+	if codeVerifier != "" {
+		opts = append(opts, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
+	}
+
+	token, err := c.oauth2Config.Exchange(ctx, code, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
