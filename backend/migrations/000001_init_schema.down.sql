@@ -24,6 +24,10 @@ DROP FUNCTION IF EXISTS update_updated_at_column();
 -- ============================================================================
 -- テーブルの削除（依存関係の逆順）
 -- ============================================================================
+-- 注: CASCADE指定により、以下も自動的に削除されます:
+--   - 外部キー制約 (fk_reservation_instances_reservation_id等)
+--   - UNIQUEインデックス (idx_reservations_id_unique等)
+--   - その他の制約とインデックス
 
 -- 監査ログテーブル（他テーブルへの依存なし）
 DROP TABLE IF EXISTS audit_logs CASCADE;
@@ -32,7 +36,7 @@ DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS reservation_resources CASCADE;
 DROP TABLE IF EXISTS reservation_participants CASCADE;
 
--- 予約インスタンステーブル
+-- 予約インスタンステーブル（reservationsへの外部キー制約あり）
 DROP TABLE IF EXISTS reservation_instances CASCADE;
 
 -- 予約テーブル（パーティション親テーブル）
@@ -54,4 +58,5 @@ BEGIN
     RAISE NOTICE '削除されたテーブル: users, resources, reservations (パーティション含む), reservation_instances, reservation_participants, reservation_resources, audit_logs';
     RAISE NOTICE '削除されたトリガー: 6個';
     RAISE NOTICE '削除された関数: 2個';
+    RAISE NOTICE '削除された制約: 外部キー制約、UNIQUE制約等（CASCADE により自動削除）';
 END $$;

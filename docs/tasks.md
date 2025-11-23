@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 13:10 JST
+最終更新: 2025-11-23 12:54 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -28,12 +28,14 @@ Depended On By: None
   - 内容: 全テーブル定義、パーティション設定、基本インデックス
   - 依存: 1.1
   - レビュー (2025-11-23 AI Assistant): `reservations` が複合PKのみで `id` のユニーク制約がなく、`reservation_instances` に外部キーも無いため孤立レコードを防げません。`id` 単独の UNIQUE 付与とパーティション対応の外部キー追加が必要です。
+  - 修正 (2025-11-23 12:54 AI Assistant): `reservations.id` に UNIQUE INDEX を追加、`reservation_instances.reservation_id` に外部キー制約を追加しました。レビュー待ち。
 
 - [R] 1.3 初期スキーママイグレーション (Down) (AI Assistant - 完了 2025-11-23 12:42)
   - ファイル: `backend/migrations/000001_init_schema.down.sql`
   - 内容: 全テーブルのDROP処理
   - 依存: 1.2
   - レビュー (2025-11-23 AI Assistant): Up側の外部キー/ユニーク不足に合わせた整合性確認が未解決のため、併せて見直しが必要です。
+  - 修正 (2025-11-23 12:54 AI Assistant): CASCADE により外部キーとUNIQUE制約も自動削除されることをコメントで明記しました。レビュー待ち。
 
 - [x] 1.4 シードデータ - ユーザー (AI Assistant - 完了 2025-11-23 12:43)
   - ファイル: `database/seed/users.sql`
