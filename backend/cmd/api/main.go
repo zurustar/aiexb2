@@ -44,6 +44,12 @@ func main() {
 	defer dbPool.Close()
 	log.Println("Database connection established")
 
+	// 依存サービスのヘルスチェック
+	if err := healthCheck(dbPool); err != nil {
+		log.Fatalf("Health check failed: %v", err)
+	}
+	log.Println("All dependency health checks passed")
+
 	// Redis接続（将来の実装用）
 	// redisClient := initRedis(config.RedisURL)
 	// defer redisClient.Close()
@@ -170,26 +176,49 @@ func initOIDCClient(config *Config) (*oidc.Client, error) {
 	return oidc.NewClient(context.Background(), oidcConfig)
 }
 
+// healthCheck は依存サービスのヘルスチェックを実行します
+func healthCheck(dbPool *pgxpool.Pool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// データベース接続確認
+	if err := dbPool.Ping(ctx); err != nil {
+		return fmt.Errorf("database health check failed: %w", err)
+	}
+
+	// 将来的にRedisやその他のサービスのヘルスチェックを追加
+	// if err := redisClient.Ping(ctx).Err(); err != nil {
+	//     return fmt.Errorf("redis health check failed: %w", err)
+	// }
+
+	return nil
+}
+
 // gracefulShutdown はグレースフルシャットダウンを処理します
 func gracefulShutdown(server *http.Server, dbPool *pgxpool.Pool) {
 	// シグナル待機
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	sig := <-quit
 
-	log.Println("Shutting down server...")
+	log.Printf("Received signal: %v. Shutting down server...", sig)
 
 	// シャットダウンのタイムアウト設定
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// HTTPサーバーのシャットダウン
+	log.Println("Stopping HTTP server...")
 	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
+	} else {
+		log.Println("HTTP server stopped gracefully")
 	}
 
 	// データベース接続のクローズ
+	log.Println("Closing database connections...")
 	dbPool.Close()
+	log.Println("Database connections closed")
 
 	log.Println("Server exited")
 }
