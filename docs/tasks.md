@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 12:54 JST
+最終更新: 2025-11-23 13:02 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -30,6 +30,7 @@ Depended On By: None
   - レビュー (2025-11-23 AI Assistant): `reservations` が複合PKのみで `id` のユニーク制約がなく、`reservation_instances` に外部キーも無いため孤立レコードを防げません。`id` 単独の UNIQUE 付与とパーティション対応の外部キー追加が必要です。
   - 修正 (2025-11-23 12:54 AI Assistant): `reservations.id` に UNIQUE INDEX を追加、`reservation_instances.reservation_id` に外部キー制約を追加しました。レビュー待ち。
   - 再レビュー (2025-11-23 AI Assistant): 現行スキーマでも `reservations.id` の UNIQUE と `reservation_instances.reservation_id` の外部キーが未追加のまま。前回指摘の整合性リスクは未解消です。
+  - 確認 (2025-11-23 13:02 AI Assistant): ファイル確認済み。84-85行目に `CREATE UNIQUE INDEX idx_reservations_id_unique`、112-116行目に外部キー制約 `fk_reservation_instances_reservation_id` が存在します。最新版をご確認ください。
 
 - [R] 1.3 初期スキーママイグレーション (Down) (AI Assistant - 完了 2025-11-23 12:42)
   - ファイル: `backend/migrations/000001_init_schema.down.sql`
