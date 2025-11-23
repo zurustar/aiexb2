@@ -3,6 +3,7 @@ package oidc
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -16,7 +17,14 @@ var (
 	ErrTokenExpired    = errors.New("token expired")
 	ErrInvalidIssuer   = errors.New("invalid issuer")
 	ErrInvalidAudience = errors.New("invalid audience")
+	ErrInvalidConfig   = errors.New("invalid configuration")
 )
+
+// ClockSkew はトークン検証時の許容クロックスキュー
+const ClockSkew = 1 * time.Minute
+
+// TimeFunc は現在時刻を返す関数（テスト用に注入可能）
+var TimeFunc = time.Now
 
 // Config はOIDCクライアントの設定
 type Config struct {
@@ -37,6 +45,14 @@ type Client struct {
 
 // NewClient は新しいOIDCクライアントを作成します
 func NewClient(ctx context.Context, cfg *Config) (*Client, error) {
+	// Config検証
+	if cfg == nil {
+		return nil, ErrInvalidConfig
+	}
+	if cfg.IssuerURL == "" || cfg.ClientID == "" {
+		return nil, fmt.Errorf("%w: issuer URL and client ID are required", ErrInvalidConfig)
+	}
+
 	// OIDC Discovery
 	provider, err := oidc.NewProvider(ctx, cfg.IssuerURL)
 	if err != nil {
@@ -137,17 +153,51 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (*oauth2
 
 // TokenClaims はトークンのクレームを表します
 type TokenClaims struct {
-	Issuer    string    `json:"iss"`
-	Subject   string    `json:"sub"`
-	Audience  []string  `json:"aud"`
-	ExpiresAt time.Time `json:"exp"`
-	IssuedAt  time.Time `json:"iat"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
+	Issuer    string          `json:"iss"`
+	Subject   string          `json:"sub"`
+	Audience  audienceWrapper `json:"aud"` // 文字列または配列に対応
+	ExpiresAt int64           `json:"exp"` // Unix timestamp
+	IssuedAt  int64           `json:"iat"` // Unix timestamp
+	Email     string          `json:"email"`
+	Name      string          `json:"name"`
+}
+
+// audienceWrapper はaudienceクレームの柔軟な型対応
+type audienceWrapper []string
+
+func (a *audienceWrapper) UnmarshalJSON(data []byte) error {
+	// 文字列の場合
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		*a = []string{single}
+		return nil
+	}
+
+	// 配列の場合
+	var multiple []string
+	if err := json.Unmarshal(data, &multiple); err == nil {
+		*a = multiple
+		return nil
+	}
+
+	return fmt.Errorf("audience must be string or array")
+}
+
+func (a audienceWrapper) Contains(audience string) bool {
+	for _, aud := range a {
+		if aud == audience {
+			return true
+		}
+	}
+	return false
 }
 
 // ParseIDTokenClaims はIDトークンのクレームをパースします
 func (c *Client) ParseIDTokenClaims(ctx context.Context, rawIDToken string) (*TokenClaims, error) {
+	if c.config == nil {
+		return nil, ErrInvalidConfig
+	}
+
 	idToken, err := c.VerifyIDToken(ctx, rawIDToken)
 	if err != nil {
 		return nil, err
@@ -158,14 +208,36 @@ func (c *Client) ParseIDTokenClaims(ctx context.Context, rawIDToken string) (*To
 		return nil, fmt.Errorf("failed to parse claims: %w", err)
 	}
 
-	// 追加の検証
-	if claims.Issuer != c.config.IssuerURL {
-		return nil, ErrInvalidIssuer
-	}
-
-	if time.Now().After(claims.ExpiresAt) {
-		return nil, ErrTokenExpired
+	// 追加の検証（クロックスキュー許容）
+	if err := c.validateClaims(&claims); err != nil {
+		return nil, err
 	}
 
 	return &claims, nil
+}
+
+// validateClaims はクレームの追加検証を行います
+func (c *Client) validateClaims(claims *TokenClaims) error {
+	if c.config == nil {
+		return ErrInvalidConfig
+	}
+
+	// Issuer検証
+	if claims.Issuer != c.config.IssuerURL {
+		return fmt.Errorf("%w: expected %s, got %s", ErrInvalidIssuer, c.config.IssuerURL, claims.Issuer)
+	}
+
+	// Audience検証
+	if !claims.Audience.Contains(c.config.ClientID) {
+		return fmt.Errorf("%w: client ID %s not found in audience", ErrInvalidAudience, c.config.ClientID)
+	}
+
+	// 有効期限検証（クロックスキュー許容）
+	now := TimeFunc()
+	expTime := time.Unix(claims.ExpiresAt, 0)
+	if now.After(expTime.Add(ClockSkew)) {
+		return fmt.Errorf("%w: token expired at %v (now: %v)", ErrTokenExpired, expTime, now)
+	}
+
+	return nil
 }

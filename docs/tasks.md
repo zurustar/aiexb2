@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 15:45 JST
+最終更新: 2025-11-23 15:50 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -254,12 +254,12 @@ Depended On By: None
 ## Phase 6: バックエンド - OIDC連携 (Backend OIDC Integration)
 
 ### 実装タスク
-- [R] 6.1 OIDCクライアント ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:45)
+- [R] 6.1 OIDCクライアント ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:50)
   - ファイル: `backend/pkg/oidc/client.go`
   - 内容: OIDC Discovery、Authorization Code Flow、トークン検証
   - 依存: 3.1
 
-- [R] 6.2 OIDCクライアントテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:45)
+- [R] 6.2 OIDCクライアントテスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 15:50)
   - ファイル: `backend/pkg/oidc/client_test.go`
   - 依存: 6.1
 

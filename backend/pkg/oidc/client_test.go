@@ -81,12 +81,13 @@ func TestClient_ValidateToken(t *testing.T) {
 
 func TestTokenClaims_Validation(t *testing.T) {
 	// ユニットテスト: クレーム構造のテスト
+	now := time.Now()
 	claims := &oidc.TokenClaims{
 		Issuer:    "https://accounts.google.com",
 		Subject:   "user-123",
 		Audience:  []string{"test-client-id"},
-		ExpiresAt: time.Now().Add(1 * time.Hour),
-		IssuedAt:  time.Now(),
+		ExpiresAt: now.Add(1 * time.Hour).Unix(),
+		IssuedAt:  now.Unix(),
 		Email:     "test@example.com",
 		Name:      "Test User",
 	}
@@ -94,7 +95,10 @@ func TestTokenClaims_Validation(t *testing.T) {
 	assert.Equal(t, "https://accounts.google.com", claims.Issuer)
 	assert.Equal(t, "user-123", claims.Subject)
 	assert.Equal(t, "test@example.com", claims.Email)
-	assert.True(t, time.Now().Before(claims.ExpiresAt))
+
+	// 有効期限検証
+	expTime := time.Unix(claims.ExpiresAt, 0)
+	assert.True(t, now.Before(expTime))
 }
 
 func TestUserInfo_Structure(t *testing.T) {
