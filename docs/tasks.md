@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 20:20 JST
+最終更新: 2025-11-23 23:28 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -250,7 +250,8 @@ Depended On By: None
   - コメント: 正常系のみのフローなので、ダブルブッキング時のCreateReservationエラーや承認者不在時の例外ルートを追加し、監査ログ・トランザクション巻き戻しを確認するケースを増やすと回帰不具合に強くなりそうです。
 
 ### Phase 5 チェックポイント
-- [ ] Phase 5 レビュー完了 ⚠️
+- [x] Phase 5 レビュー完了 ⚠️ (AI Assistant - 2025-11-23 23:28 JST)
+  - レビュー結果: OIDCクライアントがPKCE/nonce対応のシグネチャへ更新されている一方、AuthService側のOIDCClientインターフェースと`cmd/api`の初期化コードが旧シグネチャ（state文字列のみ、code_verifier未使用）のままでコンパイル不可となっているため、GetAuthURL/ExchangeCode呼び出しのパラメータ見直しとnonce・code_verifierの保存/照合フロー追加が必要です。
 
 ---
 
@@ -269,7 +270,8 @@ Depended On By: None
   - コメント: こちらも全てSkipなので、テスト用のスタブOIDCプロバイダ（httptestサーバー）を立ててDiscovery/IDトークン検証/at_hash検証の正負ケースを動かすインテグレーション寄りのテストを用意すると安心です。
 
 ### Phase 6 チェックポイント
-- [ ] Phase 6 レビュー完了 ⚠️
+- [x] Phase 6 レビュー完了 ⚠️ (AI Assistant - 2025-11-23 23:28 JST)
+  - レビュー結果: `pkg/oidc.Client`はPKCEとnonce生成機能を備えていますが、AuthServiceのOIDCClientインターフェースが旧来のメソッドシグネチャを前提としており、`GetAuthURL`/`ExchangeCode`/`ParseIDTokenClaimsWithValidation`の期待パラメータが一致しないためサービス層から利用できません。AuthServiceのインターフェース・実装・呼び出し元を`AuthURLParams`/`code_verifier`/`nonce`を扱う形に揃えるリファクタリングが必要です。
 
 ---
 
