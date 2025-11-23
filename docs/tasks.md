@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 16:30 JST
+最終更新: 2025-11-23 16:45 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -280,7 +280,7 @@ Depended On By: None
   - ファイル: `backend/internal/handler/middleware_test.go`
   - 依存: 7.1
 
-- [ ] 7.3 認証ハンドラー
+- [R] 7.3 認証ハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:40)
   - ファイル: `backend/internal/handler/auth_handler.go`
   - 内容: /api/v1/auth/* エンドポイント
   - 依存: 5.1, 7.1
@@ -289,7 +289,7 @@ Depended On By: None
   - ファイル: `backend/internal/handler/auth_handler_test.go`
   - 依存: 7.3
 
-- [ ] 7.5 予約ハンドラー
+- [R] 7.5 予約ハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:40)
   - ファイル: `backend/internal/handler/reservation_handler.go`
   - 内容: /api/v1/events/* エンドポイント、統一レスポンス形式
   - 依存: 5.3, 7.1, 3.5
@@ -298,7 +298,7 @@ Depended On By: None
   - ファイル: `backend/internal/handler/reservation_handler_test.go`
   - 依存: 7.5
 
-- [ ] 7.7 リソースハンドラー
+- [R] 7.7 リソースハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:45)
   - ファイル: `backend/internal/handler/resource_handler.go`
   - 内容: /api/v1/resources/* エンドポイント
   - 依存: 4.3, 7.1
@@ -307,7 +307,19 @@ Depended On By: None
   - ファイル: `backend/internal/handler/resource_handler_test.go`
   - 依存: 7.7
 
-- [ ] 7.9 ユーザーハンドラー
+- [R] 7.9 ユーザーハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:45)
+  - ファイル: `backend/internal/handler/user_handler.go`
+  - 内容: /api/v1/users/* エンドポイント
+  - 依存: 4.1, 7.1
+
+- [ ] 7.10 ユーザーハンドラーテスト
+  - ファイル: `backend/internal/handler/user_handler_test.go`
+  - 依存: 7.9
+
+- [R] 7.11 ルーティング設定 (AI Assistant - レビュー待ち 2025-11-23 16:45)
+  - ファイル: `backend/internal/handler/router.go`
+  - 内容: ルート設定、ミドルウェアチェーン
+  - 依存: 7.1, 7.3, 7.5, 7.7, 7.9
   - ファイル: `backend/internal/handler/user_handler.go`
   - 内容: /api/v1/users/* エンドポイント
   - 依存: 4.1, 7.1
