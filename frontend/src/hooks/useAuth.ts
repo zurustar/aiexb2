@@ -1,0 +1,107 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { ApiClient } from "@/lib/api-client";
+import { AuthLoginParams, AuthManager, Session, createMemoryStorage } from "@/lib/auth";
+import { Role, User } from "@/types/models";
+
+const createDefaultAuthManager = (): AuthManager => {
+  const storage = typeof window !== "undefined" ? window.localStorage : createMemoryStorage();
+  let manager: AuthManager;
+  const apiClient = new ApiClient({
+    getAuthToken: () => manager?.loadSession()?.accessToken ?? null,
+  });
+
+  manager = new AuthManager(apiClient, storage as Storage);
+  return manager;
+};
+
+const defaultAuthManager = createDefaultAuthManager();
+
+export type UseAuthState = {
+  session: Session | null;
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+};
+
+export type UseAuthResult = UseAuthState & {
+  login: (params: AuthLoginParams) => Promise<void>;
+  logout: () => Promise<void>;
+  hasRole: (role: Role | Role[]) => boolean;
+  refresh: () => void;
+};
+
+export const useAuth = (manager: AuthManager = defaultAuthManager): UseAuthResult => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadSession = useCallback(() => {
+    const current = manager.loadSession();
+    setSession(current);
+    setIsLoading(false);
+  }, [manager]);
+
+  useEffect(() => {
+    loadSession();
+  }, [loadSession]);
+
+  const login = useCallback(
+    async (params: AuthLoginParams) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const nextSession = await manager.login(params);
+        setSession(nextSession);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Login failed");
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [manager]
+  );
+
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await manager.logout();
+      setSession(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Logout failed");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [manager]);
+
+  const hasRole = useCallback(
+    (role: Role | Role[]) => {
+      return manager.hasRole(role);
+    },
+    [manager]
+  );
+
+  const state = useMemo<UseAuthState>(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      isAuthenticated: !!session && manager.isAuthenticated(),
+      isLoading,
+      error,
+    }),
+    [session, isLoading, error, manager]
+  );
+
+  return {
+    ...state,
+    login,
+    logout,
+    hasRole,
+    refresh: loadSession,
+  };
+};
+
