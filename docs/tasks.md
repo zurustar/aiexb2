@@ -1,3 +1,7 @@
+<!--
+Depends On: docs/implementation_plan.md
+Depended On By: None
+-->
 # 実装タスク一覧
 
 最終更新: 2025-11-23 12:45 JST
@@ -28,7 +32,7 @@
   - 内容: 全テーブルのDROP処理
   - 依存: 1.2
 
-- [ ] 1.4 シードデータ - ユーザー
+- [x] 1.4 シードデータ - ユーザー (AI Assistant - 完了 2025-11-23 12:43)
   - ファイル: `database/seed/users.sql`
   - 内容: テスト用ユーザーデータ（各ロール）
   - 依存: 1.2
