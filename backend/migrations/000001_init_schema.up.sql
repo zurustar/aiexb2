@@ -81,6 +81,11 @@ COMMENT ON COLUMN reservations.rrule IS '繰り返しルール（iCalendar RFC 5
 COMMENT ON COLUMN reservations.approval_status IS '承認状態: PENDING, CONFIRMED, REJECTED';
 COMMENT ON COLUMN reservations.version IS '楽観的ロック用バージョン番号';
 
+-- id列のユニーク制約追加（パーティション全体で一意性を保証）
+CREATE UNIQUE INDEX idx_reservations_id_unique ON reservations(id);
+
+COMMENT ON INDEX idx_reservations_id_unique IS 'reservation_id の一意性を保証（パーティション全体）';
+
 -- 年別パーティション作成（2025年〜2027年）
 CREATE TABLE reservations_2025 PARTITION OF reservations
     FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
@@ -96,19 +101,25 @@ CREATE TABLE reservations_2027 PARTITION OF reservations
 -- ============================================================================
 CREATE TABLE reservation_instances (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    reservation_id UUID NOT NULL,  -- 外部キーは後で追加（パーティション対応）
+    reservation_id UUID NOT NULL,
     start_at TIMESTAMPTZ NOT NULL,
     end_at TIMESTAMPTZ NOT NULL,
     original_start_at TIMESTAMPTZ,  -- 繰り返し例外時の元の開始日時
     status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED',  -- CONFIRMED, CANCELLED, CHECKED_IN, COMPLETED, NO_SHOW
     checked_in_at TIMESTAMPTZ,  -- チェックイン日時
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- 外部キー制約（パーティションテーブルへの参照）
+    CONSTRAINT fk_reservation_instances_reservation_id 
+        FOREIGN KEY (reservation_id) 
+        REFERENCES reservations(id) 
+        ON DELETE CASCADE
 );
 
 COMMENT ON TABLE reservation_instances IS '予約インスタンス展開テーブル（繰り返し予定の個別インスタンス）';
 COMMENT ON COLUMN reservation_instances.original_start_at IS '繰り返し例外時の元の開始日時';
 COMMENT ON COLUMN reservation_instances.status IS 'ステータス: CONFIRMED, CANCELLED, CHECKED_IN, COMPLETED, NO_SHOW';
+COMMENT ON CONSTRAINT fk_reservation_instances_reservation_id ON reservation_instances IS 'reservations テーブルへの外部キー（孤立レコード防止）';
 
 -- ============================================================================
 -- ReservationParticipants テーブル
