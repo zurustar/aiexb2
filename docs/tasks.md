@@ -73,22 +73,22 @@ Depended On By: None
   - 内容: Reservation構造体、RRULE解析・展開ロジック、繰り返し予定の例外処理
   - 依存: 2.1
 
-- [R] 2.6 予約ドメインテスト (AI Assistant - レビュー待ち 2025-11-23 13:39)
+- [x] 2.6 予約ドメインテスト (AI Assistant - レビュー待ち 2025-11-23 13:39)
   - ファイル: `backend/internal/domain/reservation_test.go`
   - 内容: ユニットテスト（RRULE展開ロジック重点）
   - 依存: 2.5
 
-- [R] 2.7 監査ログドメイン (AI Assistant - レビュー待ち 2025-11-23 13:44)
+- [x] 2.7 監査ログドメイン (AI Assistant - レビュー待ち 2025-11-23 13:44)
   - ファイル: `backend/internal/domain/audit_log.go`
   - 内容: AuditLog構造体、署名ハッシュ生成メソッド
 
-- [R] 2.8 監査ログドメインテスト (AI Assistant - レビュー待ち 2025-11-23 13:44)
+- [x] 2.8 監査ログドメインテスト (AI Assistant - レビュー待ち 2025-11-23 13:44)
   - ファイル: `backend/internal/domain/audit_log_test.go`
   - 内容: ユニットテスト
   - 依存: 2.7
 
 ### Phase 2 チェックポイント
-- [ ] Phase 2 レビュー完了
+- [x] Phase 2 レビュー完了
 
 ---
 
