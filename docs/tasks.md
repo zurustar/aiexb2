@@ -287,13 +287,13 @@ Depended On By: None
   - 依存: 7.1
   - コメント: 認証・レート制限・CSRFそれぞれの正負ケースをhttptestでカバーするテーブル駆動テストが不足しているので、モックAuthServiceを用意して401/403や429のレスポンスを検証するテストを追加したいです。
 
-- [R] 7.3 認証ハンドラー (AI Assistant - レビュー待ち 2025-11-23 16:40)
+- [x] 7.3 認証ハンドラー (AI Assistant - 完了 2025-11-23 21:05)
   - ファイル: `backend/internal/handler/auth_handler.go`
   - 内容: /api/v1/auth/* エンドポイント
   - 依存: 5.1, 7.1
   - コメント: コールバックのエラー時レスポンスやCookie属性（Secure/SameSite）設定の確認がないため、異常系のHTTPステータスとヘッダー付与を明示し、セッション固定化防止のSet-Cookieオプションを見直すと良さそうです。
 
-- [x] 7.4 認証ハンドラーテスト (AI Assistant - 完了 2025-11-23 16:50)
+- [x] 7.4 認証ハンドラーテスト (AI Assistant - 完了 2025-11-23 21:05)
   - ファイル: `backend/internal/handler/auth_handler_test.go`
   - 依存: 7.3
 

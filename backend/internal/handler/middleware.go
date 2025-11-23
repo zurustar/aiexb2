@@ -23,11 +23,6 @@ const (
 	ContextKeyRequestID ContextKey = "request_id"
 )
 
-// AuthServiceInterface は認証サービスのインターフェース
-type AuthServiceInterface interface {
-	GetSession(sessionID string) (*service.Session, error)
-}
-
 // Middleware はミドルウェアの集合
 type Middleware struct {
 	authService AuthServiceInterface

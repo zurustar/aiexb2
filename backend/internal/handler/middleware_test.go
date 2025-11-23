@@ -9,24 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/your-org/esms/internal/domain"
 	"github.com/your-org/esms/internal/handler"
 	"github.com/your-org/esms/internal/service"
 )
-
-// Mock AuthService
-type MockAuthService struct {
-	mock.Mock
-}
-
-func (m *MockAuthService) GetSession(sessionID string) (*service.Session, error) {
-	args := m.Called(sessionID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*service.Session), args.Error(1)
-}
 
 func TestMiddleware_CORS(t *testing.T) {
 	mockAuth := new(MockAuthService)
