@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 13:25 JST
+最終更新: 2025-11-23 13:30 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -54,21 +54,21 @@ Depended On By: None
   - ファイル: `backend/internal/domain/user.go`
   - 内容: User構造体、Role定数、権限チェックメソッド
 
-- [ ] 2.2 ユーザードメインテスト
+- [x] 2.2 ユーザードメインテスト (AI Assistant - 完了 2025-11-23 13:30)
   - ファイル: `backend/internal/domain/user_test.go`
   - 内容: ユニットテスト
   - 依存: 2.1
 
-- [ ] 2.3 リソースドメイン
+- [x] 2.3 リソースドメイン (AI Assistant - 完了 2025-11-23 13:30)
   - ファイル: `backend/internal/domain/resource.go`
   - 内容: Resource構造体、ResourceType定数、検証メソッド
 
-- [ ] 2.4 リソースドメインテスト
+- [x] 2.4 リソースドメインテスト (AI Assistant - 完了 2025-11-23 13:30)
   - ファイル: `backend/internal/domain/resource_test.go`
   - 内容: ユニットテスト
   - 依存: 2.3
 
-- [ ] 2.5 予約ドメイン ⚠️
+- [x] 2.5 予約ドメイン ⚠️ (AI Assistant - 完了 2025-11-23 13:30)
   - ファイル: `backend/internal/domain/reservation.go`
   - 内容: Reservation構造体、RRULE解析・展開ロジック、繰り返し予定の例外処理
   - 依存: 2.1
