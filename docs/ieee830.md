@@ -60,8 +60,9 @@ Depended On By: docs/basic_design.md
     * レスポンシブデザインを採用し、PCとモバイルで最適化された表示を提供すること。
     * カレンダー表示は「日・週・月・グループ」の切り替えが可能であること。
 * **3.1.2 ソフトウェアインターフェース:**
-    * **IdP連携:** SAML 2.0 または OIDC による認証連携。
+    * **IdP連携:** SAML 2.0 または OIDC による認証連携を必須とし、MFA（多要素認証）はIdP側で強制する。
     * **通知連携:** SMTPサーバー（メール）および社内チャットツールへのWebhook通知。
+    * **監視連携:** ECS FireLens (Fluent Bit) 経由でのログ転送、および Datadog/Prometheus へのメトリクス送信。
 
 ### 3.2 機能要件 (Functional Requirements)
 
@@ -121,6 +122,8 @@ Depended On By: docs/basic_design.md
 * **REQ-P4:** 朝の始業時スパイク（9:00-9:30）において、**2,000人同時接続**を処理できること。
 * **REQ-P5:** 排他制御処理において、ロック保持時間は**500ms以内**、デッドロック発生率は**0.1%以下**を維持すること。
 * **REQ-P6:** キャッシュ戦略において、リソース空き状況は競合回避のためキャッシュせず、個人データのみ短期キャッシュ（5分以内）を適用すること。
+* **REQ-P7:** 権限データは15分、リソースマスタは30分のキャッシュTTLを設定すること。
+* **REQ-P8:** キャッシュ無効化は、操作者本人は即時無効化（Read-Your-Writes）、他ユーザーは非同期無効化（Eventual Consistency）とする。
 
 ### 3.4 インフラ要件 (Infrastructure Requirements)
 * **REQ-INF1:** オンプレミス環境での冗長化構成を基本とし、単一障害点を排除すること。
@@ -135,6 +138,39 @@ Depended On By: docs/basic_design.md
 * **REQ-SEC1:** 通信はすべてHTTPS (TLS 1.2以上) で暗号化すること。
 * **REQ-SEC2:** クロスサイトスクリプティング (XSS)、SQLインジェクション、CSRF等の一般的なWeb脆弱性対策を実装すること。
 * **REQ-SEC3:** すべての更新操作（作成・変更・削除）について、操作ユーザー、タイムスタンプ、操作内容を監査ログとして **1年間** 保持すること。
+* **REQ-SEC4:** 秘密情報（DBパスワード、APIキー等）は、AWS Secrets Manager または KMS で暗号化管理し、コード内にハードコードしないこと。
+* **REQ-SEC5:** 依存ライブラリの脆弱性スキャン (SCA) およびコンテナイメージスキャンをCIパイプラインに組み込み、Critical/High 脆弱性をブロックすること。
+* **REQ-SEC6:** ロールベースアクセス制御 (RBAC) は、部署・役職・委任を組み合わせ、ポリシーのバージョニング管理を行うこと。
+
+### 3.6 運用・可観測性要件 (Operational & Observability Requirements)
+* **REQ-OPS1 (Logs):** アプリケーションログは構造化JSON形式で出力し、リクエストIDによる分散トレーシングを可能にすること。PIIは出力時にマスクすること。
+* **REQ-OPS2 (Metrics):** REDメソッド (Rate, Errors, Duration) に基づくメトリクス（RPS, Latency p95/p99, Error Rate）およびDB/Redis接続数、キュー滞留長を収集すること。
+* **REQ-OPS3 (Tracing):** OpenTelemetry を導入し、主要ユースケース（予約作成、検索）の分散トレーシングを実施すること。
+* **REQ-OPS4 (Alerts):** SLO (Availability 99.9%, Latency目標) に基づくアラートを設定し、重大度に応じた通知（PagerDuty/Slack）を行うこと。
+* **REQ-OPS5 (Cost):** 環境（dev/stg/prod）ごとにコストを分離し、月次予算超過時のアラートを設定すること。
+
+### 3.7 可用性・災害復旧要件 (Availability & DR Requirements)
+* **REQ-DR1 (RPO/RTO):** 目標復旧時点 (RPO) は15分、目標復旧時間 (RTO) は1時間以内とすること。
+* **REQ-DR2 (Backup):** DBは自動スナップショットに加え、ポイントインタイムリカバリ (PITR) を有効化すること。
+* **REQ-DR3 (Redundancy):** クロスリージョンレプリケーションまたはIaCによるDR環境の迅速な立ち上げ（1時間以内）を可能にすること。
+* **REQ-DR4 (Fallback):** Redis障害時はDBフォールバック、SSO障害時はRead-Onlyモードへの縮退運転を定義すること。
+* **REQ-DR5 (Drill):** 四半期ごとの復旧演習を実施可能な手順書を整備すること。
+
+### 3.8 品質・開発プロセス要件 (Quality & Development Requirements)
+* **REQ-DEV1 (API):** APIレスポンスは統一されたJSONエンベロープ形式（成功・エラー共通）を採用し、詳細なエラーコードと代替案を含めること。
+* **REQ-DEV2 (Test):** 単体・統合テストのカバレッジ80%以上を維持し、OpenAPI仕様に基づく契約テストをCIで強制すること。
+* **REQ-DEV3 (CI/CD):** 静的解析 (Lint)、セキュリティスキャン、テスト通過をマージ条件とする品質ゲートを設けること。
+* **REQ-DEV4 (Deploy):** DBマイグレーションは後方互換性を維持し、無停止デプロイ（Blue/Green等）に対応すること。
+
+### 3.9 データライフサイクル要件 (Data Lifecycle Requirements)
+* **REQ-DATA1:** 業務データは3年間保持し、その後アーカイブまたは削除すること。
+* **REQ-DATA2:** 監査ログは1年間オンライン保持し、その後コールドストレージへ移行して合計3年間保持すること。
+* **REQ-DATA3:** 個人情報 (PII) は最小化して保存し、分析用データセット作成時は匿名化・仮名化処理を行うこと。
+
+### 3.10 AI品質・ガバナンス要件 (AI Quality & Governance - Phase 2)
+* **REQ-AI1 (Metrics):** AIサジェストの採用率、誤提案率、NPSを指標として計測し、品質低下時は機能を自動抑制（キルスイッチ）すること。
+* **REQ-AI2 (Governance):** 学習データへの個人情報混入を防止し、再学習禁止データの取り扱いポリシーを遵守すること。
+* **REQ-AI3 (Update):** モデル更新時はオフライン評価およびA/Bテストを経てリリースすること。
 
 
 ## 4. 付録: ユースケース詳細 (Appendix: Use Case Details)
