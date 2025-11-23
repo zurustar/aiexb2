@@ -4,7 +4,7 @@ Depended On By: None
 -->
 # 実装タスク一覧
 
-最終更新: 2025-11-23 15:50 JST
+最終更新: 2025-11-23 16:20 JST
 
 ## 凡例
 - `[ ]` 未着手
@@ -205,12 +205,12 @@ Depended On By: None
 ## Phase 5: バックエンド - サービス層 (Backend Service Layer)
 
 ### 実装タスク
-- [ ] 5.1 認証サービス ⚠️
+- [R] 5.1 認証サービス ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:15)
   - ファイル: `backend/internal/service/auth_service.go`
   - 内容: OIDC認証フロー、トークン検証、セッション管理、権限チェック
   - 依存: 4.1, 3.9, 6.1
 
-- [ ] 5.2 認証サービステスト ⚠️
+- [R] 5.2 認証サービステスト ⚠️ (AI Assistant - レビュー待ち 2025-11-23 16:15)
   - ファイル: `backend/internal/service/auth_service_test.go`
   - 依存: 5.1
 
@@ -242,7 +242,7 @@ Depended On By: None
   - 依存: 5.7
 
 ### 統合テスト
-- [ ] 5.9 サービス層統合テスト
+- [R] 5.9 サービス層統合テスト (AI Assistant - レビュー待ち 2025-11-23 16:20)
   - ファイル: `backend/tests/integration/service_test.go`
   - 依存: 5.1, 5.3, 5.5, 5.7
 
