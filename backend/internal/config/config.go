@@ -30,27 +30,42 @@ type Config struct {
 	OIDCSecret          string
 	OIDCRedirect        string
 	AuditSecret         string // 監査ログ署名用シークレット
+
+	// AWS Secrets Manager Config
+	UseSecretsManager bool
+	AWSRegion         string
+	AWSSecretID       string
 }
 
 // Load は環境変数から設定を読み込みます
 func Load() (*Config, error) {
 	cfg := &Config{
-		AppEnv:        getEnv("APP_ENV", "development"),
-		ServerPort:    getEnv("SERVER_PORT", "8080"),
-		DBHost:        getEnv("DB_HOST", "localhost"),
-		DBPort:        getEnv("DB_PORT", "5432"),
-		DBUser:        getEnv("DB_USER", "postgres"),
-		DBPassword:    getEnv("DB_PASSWORD", "postgres"),
-		DBName:        getEnv("DB_NAME", "esms"),
-		DBSSLMode:     getEnv("DB_SSLMODE", "disable"),
-		RedisHost:     getEnv("REDIS_HOST", "localhost"),
-		RedisPort:     getEnv("REDIS_PORT", "6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
-		OIDCProvider:  getEnv("OIDC_PROVIDER", ""),
-		OIDCClientID:  getEnv("OIDC_CLIENT_ID", ""),
-		OIDCSecret:    getEnv("OIDC_CLIENT_SECRET", ""),
-		OIDCRedirect:  getEnv("OIDC_REDIRECT_URL", "http://localhost:8080/auth/callback"),
-		AuditSecret:   getEnv("AUDIT_SECRET", "default-audit-secret-key"),
+		AppEnv:            getEnv("APP_ENV", "development"),
+		ServerPort:        getEnv("SERVER_PORT", "8080"),
+		DBHost:            getEnv("DB_HOST", "localhost"),
+		DBPort:            getEnv("DB_PORT", "5432"),
+		DBUser:            getEnv("DB_USER", "postgres"),
+		DBPassword:        getEnv("DB_PASSWORD", "postgres"),
+		DBName:            getEnv("DB_NAME", "esms"),
+		DBSSLMode:         getEnv("DB_SSLMODE", "disable"),
+		RedisHost:         getEnv("REDIS_HOST", "localhost"),
+		RedisPort:         getEnv("REDIS_PORT", "6379"),
+		RedisPassword:     getEnv("REDIS_PASSWORD", ""),
+		OIDCProvider:      getEnv("OIDC_PROVIDER", ""),
+		OIDCClientID:      getEnv("OIDC_CLIENT_ID", ""),
+		OIDCSecret:        getEnv("OIDC_CLIENT_SECRET", ""),
+		OIDCRedirect:      getEnv("OIDC_REDIRECT_URL", "http://localhost:8080/auth/callback"),
+		AuditSecret:       getEnv("AUDIT_SECRET", "default-audit-secret-key"),
+		UseSecretsManager: getEnv("USE_SECRETS_MANAGER", "false") == "true",
+		AWSRegion:         getEnv("AWS_REGION", "ap-northeast-1"),
+		AWSSecretID:       getEnv("AWS_SECRET_ID", ""),
+	}
+
+	// Secrets Managerが有効な場合、機密情報を取得（ここではプレースホルダー実装）
+	if cfg.UseSecretsManager && cfg.AWSSecretID != "" {
+		if err := cfg.loadSecrets(); err != nil {
+			return nil, fmt.Errorf("failed to load secrets: %w", err)
+		}
 	}
 
 	redisDBStr := getEnv("REDIS_DB", "0")
@@ -102,4 +117,19 @@ func GetDurationEnv(key string, defaultValue time.Duration) time.Duration {
 		return defaultValue
 	}
 	return val
+}
+
+// loadSecrets はAWS Secrets Managerから機密情報を取得して設定を更新します
+// 現在はプレースホルダーとして実装しています
+func (c *Config) loadSecrets() error {
+	// TODO: AWS SDKを使用してSecrets Managerから値を取得する実装を追加
+	// 例:
+	// svc := secretsmanager.New(...)
+	// result, err := svc.GetSecretValue(...)
+	// secretString := *result.SecretString
+	// parse json and update c.DBPassword, c.OIDCSecret, etc.
+
+	// ここではログ出力のみ（実際には機密情報はログに出さないこと）
+	fmt.Printf("Loading secrets from AWS Secrets Manager (Region: %s, ID: %s)\n", c.AWSRegion, c.AWSSecretID)
+	return nil
 }

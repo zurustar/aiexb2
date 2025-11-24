@@ -42,6 +42,16 @@ func (m *MockJobQueue) Dequeue(ctx context.Context) (*queue.Job, error) {
 	return args.Get(0).(*queue.Job), args.Error(1)
 }
 
+func (m *MockJobQueue) Retry(ctx context.Context, job *queue.Job, err error) error {
+	args := m.Called(ctx, job, err)
+	return args.Error(0)
+}
+
+func (m *MockJobQueue) MoveToDLQ(ctx context.Context, job *queue.Job) error {
+	args := m.Called(ctx, job)
+	return args.Error(0)
+}
+
 func TestNotificationService_NotifyReservationCreated(t *testing.T) {
 	mockUserRepo := new(MockUserRepository)
 	mockJobQueue := new(MockJobQueue)

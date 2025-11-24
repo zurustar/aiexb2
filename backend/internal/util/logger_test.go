@@ -41,3 +41,19 @@ func TestWithTraceID(t *testing.T) {
 	assert.Equal(t, "test-trace-id", logEntry["trace_id"])
 	assert.Equal(t, "INFO", logEntry["level"])
 }
+
+func TestLogger_PIIMasking(t *testing.T) {
+	var buf bytes.Buffer
+	logger := util.InitLogger(false, &buf)
+	slog.SetDefault(logger)
+
+	ctx := context.Background()
+	util.LogInfo(ctx, "user login", "email", "test@example.com", "password", "secret123")
+
+	var logEntry map[string]interface{}
+	err := json.Unmarshal(buf.Bytes(), &logEntry)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "***MASKED***", logEntry["email"])
+	assert.Equal(t, "***MASKED***", logEntry["password"])
+}

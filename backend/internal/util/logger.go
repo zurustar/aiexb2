@@ -6,6 +6,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"regexp"
+	"strings"
 )
 
 type contextKey string
@@ -22,7 +24,8 @@ func InitLogger(isDev bool, w io.Writer) *slog.Logger {
 	}
 	var handler slog.Handler
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level:       slog.LevelInfo,
+		ReplaceAttr: maskPII,
 	}
 	if isDev {
 		opts.Level = slog.LevelDebug
@@ -52,4 +55,28 @@ func LogError(ctx context.Context, msg string, err error) {
 // LogInfo は情報ログを出力するヘルパー関数
 func LogInfo(ctx context.Context, msg string, args ...any) {
 	WithTraceID(ctx).Info(msg, args...)
+}
+
+// maskPII はログ出力時にPII（個人情報）をマスクする関数
+func maskPII(groups []string, a slog.Attr) slog.Attr {
+	// キー名によるフィルタリング
+	key := strings.ToLower(a.Key)
+	if key == "email" || key == "password" || key == "token" || key == "secret" {
+		return slog.String(a.Key, "***MASKED***")
+	}
+
+	// 文字列値のコンテンツフィルタリング（簡易的なメールアドレス検出）
+	if a.Value.Kind() == slog.KindString {
+		val := a.Value.String()
+		if strings.Contains(val, "@") {
+			// 簡易的なメールアドレス正規表現
+			re := regexp.MustCompile(`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`)
+			if re.MatchString(val) {
+				masked := re.ReplaceAllString(val, "***@***.***")
+				return slog.String(a.Key, masked)
+			}
+		}
+	}
+
+	return a
 }

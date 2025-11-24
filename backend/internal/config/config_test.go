@@ -27,6 +27,24 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "9090", cfg.ServerPort)
 	assert.Equal(t, 1, cfg.RedisDB)
 	assert.Equal(t, "localhost", cfg.DBHost) // デフォルト値
+	assert.False(t, cfg.UseSecretsManager)
+}
+
+func TestLoad_WithSecretsManager(t *testing.T) {
+	os.Setenv("USE_SECRETS_MANAGER", "true")
+	os.Setenv("AWS_REGION", "us-west-2")
+	os.Setenv("AWS_SECRET_ID", "my-secret")
+	defer func() {
+		os.Unsetenv("USE_SECRETS_MANAGER")
+		os.Unsetenv("AWS_REGION")
+		os.Unsetenv("AWS_SECRET_ID")
+	}()
+
+	cfg, err := config.Load()
+	assert.NoError(t, err)
+	assert.True(t, cfg.UseSecretsManager)
+	assert.Equal(t, "us-west-2", cfg.AWSRegion)
+	assert.Equal(t, "my-secret", cfg.AWSSecretID)
 }
 
 func TestConfig_DSN(t *testing.T) {
