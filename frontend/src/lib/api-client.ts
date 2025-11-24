@@ -7,6 +7,7 @@ export type ApiClientOptions = {
   getAuthToken?: () => string | null;
   fetchImpl?: typeof fetch;
   defaultHeaders?: HeadersInit;
+  timeout?: number; // milliseconds, default: 30000
 };
 
 export class ApiClientError extends Error {
@@ -28,6 +29,7 @@ export class ApiClient {
   private readonly getAuthToken?: () => string | null;
   private readonly fetchImpl: typeof fetch;
   private readonly defaultHeaders: HeadersInit;
+  private readonly timeout: number;
 
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? "";
@@ -37,6 +39,7 @@ export class ApiClient {
       "Content-Type": "application/json",
       Accept: "application/json",
     };
+    this.timeout = options.timeout ?? 30000; // 30 seconds default
   }
 
   async get<T>(path: string): Promise<ApiResponse<T>> {
@@ -98,18 +101,56 @@ export class ApiClient {
   private async request<T>(path: string, init: RequestInit & { method: HttpMethod }): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
     const headers = this.buildHeaders(init.headers);
-    const response = await this.fetchImpl(url, { ...init, headers });
 
-    if (!response.ok) {
-      throw await this.parseError(response);
+    // Setup AbortController with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const response = await this.fetchImpl(url, {
+        ...init,
+        headers,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw await this.parseError(response);
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        return (await response.json()) as ApiResponse<T>;
+      }
+
+      // Fallback for empty body or unexpected content type
+      return { data: (undefined as unknown) as T };
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Handle AbortError (timeout)
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new ApiClientError(
+          "Request timeout",
+          408,
+          [{ field: "_request", code: "TIMEOUT", message: "Request timed out" }],
+          undefined
+        );
+      }
+
+      // Re-throw ApiClientError as-is
+      if (error instanceof ApiClientError) {
+        throw error;
+      }
+
+      // Wrap other errors
+      throw new ApiClientError(
+        error instanceof Error ? error.message : "Unknown error",
+        500,
+        undefined,
+        undefined
+      );
     }
-
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      return (await response.json()) as ApiResponse<T>;
-    }
-
-    // Fallback for empty body or unexpected content type
-    return { data: (undefined as unknown) as T };
   }
 }

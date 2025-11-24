@@ -7,6 +7,7 @@ describe("ApiClient", () => {
 
   beforeEach(() => {
     mockFetch.mockReset();
+    jest.clearAllTimers();
   });
 
   it("prefixes the base URL and attaches authorization headers", async () => {
@@ -20,10 +21,11 @@ describe("ApiClient", () => {
 
     const result = await client.get<{ ok: boolean }>("/health");
 
-    expect(mockFetch).toHaveBeenCalledWith("https://api.example.com/health", {
+    expect(mockFetch).toHaveBeenCalledWith("https://api.example.com/health", expect.objectContaining({
       method: "GET",
       headers: expect.objectContaining({ Authorization: "Bearer token", Accept: "application/json" }),
-    });
+      signal: expect.any(AbortSignal),
+    }));
     expect(result).toEqual(responseBody);
   });
 
@@ -50,5 +52,46 @@ describe("ApiClient", () => {
 
     const result = await client.delete("/resource/1");
     expect(result.data).toBeUndefined();
+  });
+
+  it("throws timeout error when request exceeds timeout", async () => {
+    jest.useFakeTimers();
+    const client = new ApiClient({
+      baseUrl: "https://api.example.com",
+      fetchImpl: mockFetch,
+      timeout: 1000
+    });
+
+    mockFetch.mockImplementation(() => new Promise((resolve) => {
+      setTimeout(() => resolve(new Response("{}", { status: 200 })), 2000);
+    }));
+
+    const promise = client.get("/slow");
+    jest.advanceTimersByTime(1000);
+
+    await expect(promise).rejects.toMatchObject({
+      message: "Request timeout",
+      status: 408,
+      details: [{ field: "_request", code: "TIMEOUT", message: "Request timed out" }],
+    });
+
+    jest.useRealTimers();
+  });
+
+  it("clears timeout on successful response", async () => {
+    const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
+    const responseBody: ApiResponse<{ ok: boolean }> = { data: { ok: true } };
+
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify(responseBody), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+
+    await client.get<{ ok: boolean }>("/health");
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
   });
 });

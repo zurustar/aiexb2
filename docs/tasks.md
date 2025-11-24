@@ -408,7 +408,16 @@ Depended On By: None
   - ファイル: `frontend/src/lib/api-client.test.ts`
   - 依存: 9.4
 
-- [x] 9.6 認証ヘルパー (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 9.6 APIクライアント - タイムアウト対応 (AI Assistant - 完了 2025-11-24 13:15)
+  - ファイル: `frontend/src/lib/api-client.ts`
+  - 内容: AbortControllerを使用したタイムアウト実装（30秒デフォルト）
+  - 依存: 9.4
+
+- [x] 9.7 APIクライアント - タイムアウトテスト (AI Assistant - 完了 2025-11-24 13:15)
+  - ファイル: `frontend/src/lib/api-client.test.ts`
+  - 依存: 9.6
+
+- [x] 9.8 認証ヘルパー (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/lib/auth.ts`
   - 内容: セッション管理、ログイン/ログアウト、権限チェック
   - 依存: 9.4
