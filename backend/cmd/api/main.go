@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/your-org/esms/internal/handler"
 	"github.com/your-org/esms/internal/repository"
 	"github.com/your-org/esms/internal/service"
@@ -61,11 +62,15 @@ func main() {
 	}
 	log.Println("OIDC client initialized")
 
+	// pgxpool.Pool を *sql.DB に変換
+	db := stdlib.OpenDBFromPool(dbPool)
+	defer db.Close()
+
 	// リポジトリ初期化
-	userRepo := repository.NewUserRepository(dbPool)
-	resourceRepo := repository.NewResourceRepository(dbPool)
-	reservationRepo := repository.NewReservationRepository(dbPool)
-	auditLogRepo := repository.NewAuditLogRepository(dbPool)
+	userRepo := repository.NewUserRepository(db)
+	resourceRepo := repository.NewResourceRepository(db)
+	reservationRepo := repository.NewReservationRepository(db)
+	auditLogRepo := repository.NewAuditLogRepository(db)
 
 	// サービス初期化
 	authService := service.NewAuthService(oidcClient, userRepo, auditLogRepo)

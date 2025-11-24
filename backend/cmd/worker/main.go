@@ -1,12 +1,9 @@
-```go
 // backend/cmd/worker/main.go
 package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"math"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,44 +11,50 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/your-org/esms/internal/cache"
+	"github.com/your-org/esms/internal/config"
 	"github.com/your-org/esms/internal/queue"
 	"github.com/your-org/esms/internal/repository"
 	"github.com/your-org/esms/internal/service"
 )
 
-// Config はワーカー設定
-type Config struct {
-	DatabaseURL string
-	RedisURL    string
-	WorkerCount int
-}
-
 func main() {
-	// 設定読み込み
-	config := loadConfig()
-
 	// ロガー初期化
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting ESMS Background Worker...")
 
+	// 設定読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
 	// データベース接続
-	dbPool, err := initDatabase(config.DatabaseURL)
+	dbPool, err := initDatabase(cfg.DSN())
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer dbPool.Close()
 	log.Println("Database connection established")
 
-	// ジョブキュー初期化（リトライ付き）
-	jobQueue, err := initJobQueueWithRetry(config.RedisURL, 5, 2*time.Second)
+	// pgxpool.Pool を *sql.DB に変換
+	db := stdlib.OpenDBFromPool(dbPool)
+	defer db.Close()
+
+	// Redis接続
+	redisClient, err := cache.NewRedisClient(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize job queue: %v", err)
+		log.Fatalf("Failed to initialize Redis: %v", err)
 	}
+	log.Println("Redis connection established")
+
+	// ジョブキュー初期化
+	jobQueue := queue.NewRedisJobQueue(redisClient, "default")
 	log.Println("Job queue initialized")
 
 	// リポジトリ初期化
-	userRepo := repository.NewUserRepository(dbPool)
-	auditLogRepo := repository.NewAuditLogRepository(dbPool)
+	userRepo := repository.NewUserRepository(db)
 
 	// サービス初期化
 	notificationService := service.NewNotificationService(
@@ -68,38 +71,16 @@ func main() {
 	var wg sync.WaitGroup
 
 	// 複数のワーカーゴルーチンを起動
-	for i := 0; i < config.WorkerCount; i++ {
+	workerCount := 5 // デフォルト
+	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go worker(ctx, &wg, i, jobQueue, notificationService)
 	}
 
-	log.Printf("Started %d worker(s)", config.WorkerCount)
+	log.Printf("Started %d worker(s)", workerCount)
 
 	// グレースフルシャットダウン
 	gracefulShutdown(cancel, &wg, dbPool)
-}
-
-// loadConfig は環境変数から設定を読み込みます
-func loadConfig() *Config {
-	workerCount := 5
-	if count := os.Getenv("WORKER_COUNT"); count != "" {
-		// Parse worker count
-		workerCount = 5 // デフォルト
-	}
-
-	return &Config{
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://localhost:5432/esms?sslmode=disable"),
-		RedisURL:    getEnv("REDIS_URL", "redis://localhost:6379"),
-		WorkerCount: workerCount,
-	}
-}
-
-// getEnv は環境変数を取得し、存在しない場合はデフォルト値を返します
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 // initDatabase はデータベース接続プールを初期化します
@@ -128,34 +109,10 @@ func initDatabase(databaseURL string) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-// initJobQueueWithRetry はジョブキューを初期化します（リトライ付き）
-func initJobQueueWithRetry(redisURL string, maxRetries int, initialBackoff time.Duration) (*queue.JobQueue, error) {
-	var jobQueue *queue.JobQueue
-	var err error
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		jobQueue = queue.NewJobQueue(redisURL)
-		
-		// 接続テスト（キューの実装に応じて調整）
-		// ここでは単純に初期化が成功したと仮定
-		if jobQueue != nil {
-			log.Printf("Job queue connection established (attempt %d/%d)", attempt+1, maxRetries)
-			return jobQueue, nil
-		}
-
-		if attempt < maxRetries-1 {
-			// 指数バックオフで待機
-			backoff := time.Duration(math.Pow(2, float64(attempt))) * initialBackoff
-			log.Printf("Job queue connection failed, retrying in %v (attempt %d/%d)", backoff, attempt+1, maxRetries)
-			time.Sleep(backoff)
-		}
-	}
-
-	return nil, fmt.Errorf("failed to connect to job queue after %d attempts: %w", maxRetries, err)
-}
 
 // worker はジョブを処理するワーカー
-func worker(ctx context.Context, wg *sync.WaitGroup, id int, jobQueue *queue.JobQueue, notificationService *service.NotificationService) {
+func worker(ctx context.Context, wg *sync.WaitGroup, id int, jobQueue queue.JobQueue, notificationService *service.NotificationService) {
 	defer wg.Done()
 	log.Printf("Worker %d started", id)
 
@@ -172,7 +129,13 @@ func worker(ctx context.Context, wg *sync.WaitGroup, id int, jobQueue *queue.Job
 				if ctx.Err() != nil {
 					return
 				}
-				// キューが空の場合は少し待機
+				log.Printf("Worker %d: Failed to dequeue job: %v", id, err)
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			// キューが空の場合
+			if job == nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}
