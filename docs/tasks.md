@@ -95,19 +95,19 @@ Depended On By: None
 ## Phase 3: バックエンド - 設定・ユーティリティ (Backend Config & Utilities)
 
 ### 実装タスク
-- [x] 3.1 設定管理 (AI Assistant - 完了 2025-11-23 14:25)
+- [ ] 3.1 設定管理
   - ファイル: `backend/internal/config/config.go`
-  - 内容: 環境変数読み込み、DB接続設定、Redis設定、OIDC設定
+  - 内容: 環境変数読み込み、DB接続設定、Redis設定、OIDC設定、AWS Secrets Manager/KMS連携
 
-- [x] 3.2 設定管理テスト (AI Assistant - 完了 2025-11-23 13:55)
+- [ ] 3.2 設定管理テスト
   - ファイル: `backend/internal/config/config_test.go`
   - 依存: 3.1
 
-- [x] 3.3 ロガー (AI Assistant - 完了 2025-11-23 14:25)
+- [ ] 3.3 ロガー
   - ファイル: `backend/internal/util/logger.go`
-  - 内容: 構造化ログ、ログレベル管理、リクエストIDトレース
+  - 内容: 構造化ログ、ログレベル管理、リクエストIDトレース、PII自動マスク処理
 
-- [x] 3.4 ロガーテスト (AI Assistant - 完了 2025-11-23 13:55)
+- [ ] 3.4 ロガーテスト
   - ファイル: `backend/internal/util/logger_test.go`
   - 依存: 3.3
 
@@ -136,17 +136,17 @@ Depended On By: None
   - ファイル: `backend/internal/cache/redis_client_test.go`
   - 依存: 3.9
 
-- [x] 3.11 ジョブキュー (AI Assistant - 完了 2025-11-23 14:05)
+- [ ] 3.11 ジョブキュー
   - ファイル: `backend/internal/queue/job_queue.go`
-  - 内容: バックグラウンドジョブ管理、リトライ機構、冪等性キー
+  - 内容: バックグラウンドジョブ管理、指数バックオフ・ジッター付きリトライ機構、DLQ
   - 依存: 3.9
 
-- [x] 3.12 ジョブキューテスト (AI Assistant - 完了 2025-11-23 14:05)
+- [ ] 3.12 ジョブキューテスト
   - ファイル: `backend/internal/queue/job_queue_test.go`
   - 依存: 3.11
 
 ### Phase 3 チェックポイント
-- [x] Phase 3 レビュー完了 ⚠️
+- [ ] Phase 3 レビュー完了 ⚠️
 
 ---
 
@@ -658,9 +658,9 @@ Depended On By: None
 ## Phase 16: CI/CD・ドキュメント (CI/CD & Documentation)
 
 ### 実装タスク
-- [x] 16.1 CI設定 (AI Assistant - レビュー待ち 2025-11-24)
+- [ ] 16.1 CI設定
   - ファイル: `.github/workflows/ci.yml`
-  - 内容: Lint、テスト、ビルドの自動実行
+  - 内容: Lint、テスト、ビルド、脆弱性スキャン (Trivy/SCA) の自動実行
   - 依存: 15.5
 
 - [x] 16.2 CD設定（Future） (AI Assistant - レビュー待ち 2025-11-24)
@@ -671,14 +671,36 @@ Depended On By: None
 - [x] 16.3 CI動作確認 (AI Assistant - レビュー待ち 2025-11-24)
   - 内容: Pull Request作成してCI実行確認
 
+- [ ] 16.4 監査ログ・バックアップ設定
+  - ファイル: `docs/ops/retention_policy.md`
+  - 内容: 監査ログ保持期間、DBバックアップ (PITR) 設定手順
+
 ### Phase 16 チェックポイント
-- [x] Phase 16 レビュー完了 ⚠️
+- [ ] Phase 16 レビュー完了 ⚠️
+
+---
+
+## Phase 17: AI機能 (AI Features - Future Scope)
+
+### 実装タスク
+- [ ] 17.1 AIサービス
+  - ファイル: `backend/internal/service/ai_service.go`
+  - 内容: プロンプト構築、LLMクライアント連携、レスポンス解析
+  - 依存: 5.3
+
+- [ ] 17.2 AIガバナンス機構
+  - ファイル: `backend/internal/service/ai_governance.go`
+  - 内容: キルスイッチ実装、品質メトリクス計測、PIIガードレール
+  - 依存: 17.1
+
+### Phase 17 チェックポイント
+- [ ] Phase 17 レビュー完了 ⚠️
 
 ---
 
 ## 最終確認
 
-- [x] 全Phase完了
-- [x] 全テスト合格
-- [x] ドキュメント整備完了
-- [x] 本番環境デプロイ準備完了
+- [ ] 全Phase完了
+- [ ] 全テスト合格
+- [ ] ドキュメント整備完了
+- [ ] 本番環境デプロイ準備完了
