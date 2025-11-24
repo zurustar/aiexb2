@@ -30,6 +30,7 @@ export type UseAuthResult = UseAuthState & {
   logout: () => Promise<void>;
   hasRole: (role: Role | Role[]) => boolean;
   refresh: () => void;
+  refreshToken: () => Promise<void>;
 };
 
 export const useAuth = (manager: AuthManager = defaultAuthManager): UseAuthResult => {
@@ -42,6 +43,51 @@ export const useAuth = (manager: AuthManager = defaultAuthManager): UseAuthResul
     setSession(current);
     setIsLoading(false);
   }, [manager]);
+
+  // Cross-tab session synchronization
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // Only react to session key changes
+      if (e.key === "esms.session" || e.key === null) {
+        loadSession();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [loadSession]);
+
+  // Auto token refresh
+  useEffect(() => {
+    if (!session) return;
+
+    const checkAndRefresh = async () => {
+      if (manager.shouldRefreshToken()) {
+        try {
+          const refreshed = await manager.refreshToken();
+          if (refreshed) {
+            setSession(refreshed);
+          } else {
+            // Refresh failed, clear session
+            setSession(null);
+          }
+        } catch (error) {
+          console.error("Token refresh failed:", error);
+          setSession(null);
+        }
+      }
+    };
+
+    // Check every 60 seconds
+    const intervalId = setInterval(checkAndRefresh, 60000);
+
+    // Also check immediately
+    checkAndRefresh();
+
+    return () => clearInterval(intervalId);
+  }, [session, manager]);
 
   useEffect(() => {
     loadSession();
@@ -85,6 +131,18 @@ export const useAuth = (manager: AuthManager = defaultAuthManager): UseAuthResul
     [manager]
   );
 
+  const refreshToken = useCallback(async () => {
+    try {
+      const refreshed = await manager.refreshToken();
+      if (refreshed) {
+        setSession(refreshed);
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Token refresh failed");
+      throw error;
+    }
+  }, [manager]);
+
   const state = useMemo<UseAuthState>(
     () => ({
       session,
@@ -102,6 +160,7 @@ export const useAuth = (manager: AuthManager = defaultAuthManager): UseAuthResul
     logout,
     hasRole,
     refresh: loadSession,
+    refreshToken,
   };
 };
 

@@ -451,7 +451,17 @@ Depended On By: None
   - ファイル: `frontend/src/hooks/useAuth.test.ts`
   - 依存: 10.1
 
-- [x] 10.3 予定フック (AI Assistant - レビュー待ち 2025-11-24)
+- [x] 10.3 認証ヘルパー - トークンリフレッシュ (AI Assistant - 完了 2025-11-24 14:30)
+  - ファイル: `frontend/src/lib/auth.ts`
+  - 内容: トークン有効期限チェック、自動リフレッシュ機能
+  - 依存: 9.8
+
+- [x] 10.4 認証フック - クロスタブ同期 (AI Assistant - 完了 2025-11-24 14:30)
+  - ファイル: `frontend/src/hooks/useAuth.ts`
+  - 内容: storageイベントによるタブ間セッション同期、自動トークンリフレッシュ
+  - 依存: 10.1, 10.3
+
+- [x] 10.5 予定フック (AI Assistant - レビュー待ち 2025-11-24)
   - ファイル: `frontend/src/hooks/useEvents.ts`
   - 内容: 予定一覧取得、予定作成・更新・削除
   - 依存: 9.4

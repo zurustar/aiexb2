@@ -105,6 +105,44 @@ export class AuthManager {
     }
     return user.role === required;
   }
+
+  /**
+   * Check if token will expire within the given milliseconds
+   * @param withinMs - milliseconds (default: 5 minutes)
+   */
+  shouldRefreshToken(withinMs: number = 5 * 60 * 1000): boolean {
+    const session = this.loadSession();
+    if (!session || !session.expiresAt) return false;
+    return Date.now() + withinMs >= session.expiresAt;
+  }
+
+  /**
+   * Get token expiry time in milliseconds
+   */
+  getTokenExpiry(): number | null {
+    const session = this.loadSession();
+    return session?.expiresAt ?? null;
+  }
+
+  /**
+   * Refresh the access token using refresh token
+   */
+  async refreshToken(): Promise<Session | null> {
+    const session = this.loadSession();
+    if (!session?.refreshToken) return null;
+
+    try {
+      const result = await this.apiClient.post<Session>("/api/v1/auth/refresh", {
+        refreshToken: session.refreshToken,
+      });
+      this.saveSession(result.data);
+      return result.data;
+    } catch (error) {
+      // Refresh failed, clear session
+      this.clearSession();
+      return null;
+    }
+  }
 }
 
 export const createMemoryStorage = () => new MemoryStorage();
