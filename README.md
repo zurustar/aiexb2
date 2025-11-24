@@ -29,22 +29,39 @@
 git clone <repository-url>
 cd aiexb2
 
-# 環境変数を設定
+# 環境変数を設定（オプション: デフォルト値で動作します）
 cp .env.example .env
-# .env を編集して必要な値を設定
 
-# セットアップ実行
+# セットアップ実行（Docker イメージビルド、DB作成、マイグレーション、シードデータ投入）
 make setup
 
 # 開発環境起動
 make up
 ```
 
+> **Note**: `.env`ファイルはオプションです。作成しなくてもデフォルト値で動作します。
+> Keycloakを含むすべてのサービスが自動的に設定されます。
+
+
 ### アクセスURL
 
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8080
+- **Keycloak (認証)**: http://localhost:8180
 - **MailHog (開発用メール)**: http://localhost:8025
+
+### テストユーザー
+
+開発環境では以下のテストユーザーが自動的に作成されます:
+
+| ユーザー名 | パスワード | ロール |
+|-----------|----------|--------|
+| admin@esms.local | admin123 | admin, user |
+| user@esms.local | user123 | user |
+| manager@esms.local | manager123 | admin, user |
+
+**Keycloak管理コンソール**: http://localhost:8180 (admin / admin)
+
 
 ## 開発コマンド
 
@@ -124,4 +141,18 @@ make setup
 ```bash
 make logs              # 全サービス
 docker-compose logs backend   # 特定のサービス
+```
+
+### Keycloakが起動しない
+
+```bash
+# Keycloakのログを確認
+docker-compose logs keycloak
+
+# Keycloakデータベースを確認
+docker-compose exec postgres psql -U esms_user -d keycloak -c "\dt"
+
+# 完全リセット
+make clean
+make setup
 ```

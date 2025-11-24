@@ -32,15 +32,17 @@ services:
       - GO_ENV=development
       - DATABASE_URL=postgres://esms_user:esms_pass@postgres:5432/esms?sslmode=disable
       - REDIS_URL=redis://redis:6379/0
-      - OIDC_ISSUER=${OIDC_ISSUER:-https://accounts.google.com}
-      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
-      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - OIDC_ISSUER=${OIDC_ISSUER:-http://keycloak:8080/realms/esms}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-esms-client}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-esms-dev-secret-do-not-use-in-production}
       - SESSION_SECRET=${SESSION_SECRET:-dev-secret-key-change-in-production}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+      keycloak:
+        condition: service_healthy
     networks:
       - esms-network
 
@@ -105,6 +107,34 @@ services:
     ports:
       - "1025:1025"  # SMTP
       - "8025:8025"  # Web UI
+    networks:
+      - esms-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./database/keycloak:/opt/keycloak/data/import:ro
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak
+      - KC_DB_USERNAME=esms_user
+      - KC_DB_PASSWORD=esms_pass
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: http://localhost\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     networks:
       - esms-network
 
